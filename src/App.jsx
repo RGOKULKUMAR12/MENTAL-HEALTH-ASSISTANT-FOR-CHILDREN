@@ -35,22 +35,25 @@ function App() {
       <Route element={<ProtectedLayout allowedRoles={['child']} />}>
         <Route path="/dashboard/child" element={<ChildDashboard />} />
         <Route path="/questionnaire" element={<Questionnaire />} />
-        <Route path="/wellness" element={<Wellness />} />
       </Route>
 
       {/* Parent routes */}
       <Route element={<ProtectedLayout allowedRoles={['parent']} />}>
         <Route path="/dashboard/parent" element={<ParentDashboard />} />
         <Route path="/dashboard/parent/children" element={<ParentChildren />} />
-        <Route path="/wellness" element={<Wellness />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/alerts" element={<Alerts />} />
-        <Route path="/settings" element={<Settings />} />
       </Route>
 
       {/* Admin routes */}
       <Route element={<ProtectedLayout allowedRoles={['admin']} />}>
         <Route path="/dashboard/admin" element={<AdminDashboard />} />
+      </Route>
+
+      {/* Shared routes */}
+      <Route element={<ProtectedLayout allowedRoles={['child']} />}>
+        <Route path="/wellness" element={<Wellness />} />
+      </Route>
+
+      <Route element={<ProtectedLayout allowedRoles={['parent', 'admin']} />}>
         <Route path="/reports" element={<Reports />} />
         <Route path="/alerts" element={<Alerts />} />
         <Route path="/settings" element={<Settings />} />

@@ -13,9 +13,9 @@ import { UserPlus, Users, Key, Trash2 } from 'lucide-react';
 
 export default function ParentChildren() {
   const { user } = useAuth();
-  const { createChild, getChildrenByParent, deleteChild } = useChildren();
+  const { createChild, getChildrenByParent, deleteChild, loading, error } = useChildren();
   const { getAssessment } = useAssessment();
-  const parentId = user?.id || 'parent-1';
+  const parentId = user?.id;
   const children = getChildrenByParent(parentId);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -24,20 +24,30 @@ export default function ParentChildren() {
   const [password, setPassword] = useState('');
   const [createdChild, setCreatedChild] = useState(null);
   const [childPendingDelete, setChildPendingDelete] = useState(null);
+  const [formError, setFormError] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
 
-  const handleCreateChild = (e) => {
+  const handleCreateChild = async (e) => {
     e.preventDefault();
+    setFormError('');
     if (!name.trim() || !username.trim() || !password.trim()) return;
     if (password.length < 4) {
-      alert('Password must be at least 4 characters');
+      setFormError('Password must be at least 4 characters');
       return;
     }
-    const newChild = createChild(parentId, name.trim(), username.trim(), password);
-    setCreatedChild({ ...newChild, showCredentials: true });
-    setName('');
-    setUsername('');
-    setPassword('');
-    setShowCreateForm(false);
+    setActionLoading(true);
+    try {
+      const newChild = await createChild(parentId, name.trim(), username.trim(), password);
+      setCreatedChild({ ...newChild, showCredentials: true });
+      setName('');
+      setUsername('');
+      setPassword('');
+      setShowCreateForm(false);
+    } catch (err) {
+      setFormError(err?.message || 'Failed to create child account');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleDismissCreated = () => {
@@ -59,12 +69,14 @@ export default function ParentChildren() {
         <p className="text-sm text-gray-600 mb-4">
           Create a User ID and password for your child. They will use these to log in.
         </p>
+        {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
         {!showCreateForm ? (
           <button
             onClick={() => setShowCreateForm(true)}
             className="px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600"
+            disabled={loading || actionLoading}
           >
-            Add child
+            {loading ? 'Loading...' : 'Add child'}
           </button>
         ) : (
           <form onSubmit={handleCreateChild} className="space-y-4">
@@ -104,16 +116,19 @@ export default function ParentChildren() {
               />
               <p className="text-xs text-gray-500 mt-1">Share this with your child securely</p>
             </div>
+            {formError && <p className="text-sm text-red-600">{formError}</p>}
             <div className="flex gap-2">
               <button
                 type="submit"
+                disabled={actionLoading}
                 className="px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600"
               >
-                Create account
+                {actionLoading ? 'Creating...' : 'Create account'}
               </button>
               <button
                 type="button"
                 onClick={() => { setShowCreateForm(false); setName(''); setUsername(''); setPassword(''); }}
+                disabled={actionLoading}
                 className="px-4 py-2 border border-gray-300 rounded-lg font-medium hover:bg-gray-50"
               >
                 Cancel
@@ -170,7 +185,7 @@ export default function ParentChildren() {
                     )}
                   </div>
                   <div className="flex items-center gap-3">
-                    {assessment?.riskLevel && <RiskBadge level={assessment.riskLevel} />}
+                    {assessment?.riskLevel && <RiskBadge level={assessment.riskLevel} size="lg" />}
                     {!isPendingDelete ? (
                       <button
                         type="button"
@@ -185,10 +200,19 @@ export default function ParentChildren() {
                         <span className="text-gray-600">Remove this child?</span>
                         <button
                           type="button"
-                          onClick={() => {
-                            deleteChild(parentId, child.id);
-                            setChildPendingDelete(null);
+                          onClick={async () => {
+                            setFormError('');
+                            setActionLoading(true);
+                            try {
+                              await deleteChild(parentId, child.id);
+                              setChildPendingDelete(null);
+                            } catch (err) {
+                              setFormError(err?.message || 'Failed to remove child');
+                            } finally {
+                              setActionLoading(false);
+                            }
                           }}
+                          disabled={actionLoading}
                           className="px-2 py-1 rounded bg-red-500 text-white hover:bg-red-600"
                         >
                           Yes

@@ -3,46 +3,48 @@
  * Parent: email + password | Child: username (User ID) + password (created by parent)
  */
 
-import { createContext, useContext, useState, useCallback } from 'react';
-import { MOCK_USERS } from '../data/mockData';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { api, setToken } from '../api/api';
 
 const AuthContext = createContext(null);
+const USER_KEY = 'mental-pro-user';
+
+function readStoredUser() {
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => readStoredUser());
 
-  const login = useCallback((identifier, password, role, findChildByCredentials) => {
-    if (role === 'child' && findChildByCredentials) {
-      const childUser = findChildByCredentials(identifier, password);
-      if (childUser) {
-        const userData = {
-          id: childUser.id,
-          name: childUser.name,
-          role: 'child',
-          username: childUser.username,
-          parentId: childUser.parentId,
-          consentStatus: childUser.consentStatus,
-        };
-        setUser(userData);
-        return userData;
-      }
-      return null;
+  useEffect(() => {
+    try {
+      if (!user) localStorage.removeItem(USER_KEY);
+      else localStorage.setItem(USER_KEY, JSON.stringify(user));
+    } catch {
+      // no-op
     }
-    if (role === 'parent') {
-      const mockUser = MOCK_USERS.parent;
-      setUser({ ...mockUser, email: identifier || mockUser.email });
-      return { ...mockUser, role: 'parent' };
-    }
-    if (role === 'admin') {
-      const mockUser = MOCK_USERS.admin;
-      setUser({ ...mockUser, email: identifier || mockUser.email });
-      return { ...mockUser, role: 'admin' };
-    }
-    return null;
+  }, [user]);
+
+  const login = useCallback(async (identifier, password, role) => {
+    const data = await api.login({ identifier, password, role });
+    setUser(data.user);
+    return data.user;
+  }, []);
+
+  const register = useCallback(async ({ name, email, password }) => {
+    const data = await api.register({ name, email, password });
+    setUser(data.user);
+    return data.user;
   }, []);
 
   const logout = useCallback(() => {
     setUser(null);
+    setToken(null);
   }, []);
 
   const hasRole = useCallback((allowedRoles) => {
@@ -53,6 +55,7 @@ export function AuthProvider({ children }) {
   const value = {
     user,
     login,
+    register,
     logout,
     hasRole,
     isAuthenticated: !!user,

@@ -17,7 +17,6 @@ const navConfig = {
   parent: [
     { to: '/dashboard/parent', icon: Home, label: 'Dashboard' },
     { to: '/dashboard/parent/children', icon: ClipboardList, label: 'My Children' },
-    { to: '/wellness', icon: Heart, label: 'Wellness' },
     { to: '/reports', icon: BarChart3, label: 'Reports' },
     { to: '/alerts', icon: Bell, label: 'Alerts' },
     { to: '/settings', icon: Settings, label: 'Settings' },

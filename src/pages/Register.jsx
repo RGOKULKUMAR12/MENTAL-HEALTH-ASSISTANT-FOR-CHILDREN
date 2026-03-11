@@ -12,18 +12,19 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const [error, setError] = useState('');
+  const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
     try {
-      // Mock registration - in production, call API
-      const user = login(email, password, 'parent');
+      const user = await register({ name, email, password });
       if (user) navigate('/dashboard/parent');
     } catch (err) {
-      console.error(err);
+      setError(err?.message || 'Unable to create account');
     } finally {
       setLoading(false);
     }
@@ -45,6 +46,7 @@ export default function Register() {
               onChange={(e) => setName(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500"
               placeholder="Your name"
+              required
             />
           </div>
           <div>
@@ -65,10 +67,11 @@ export default function Register() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500"
-              placeholder="••••••••"
+              placeholder="********"
               required
             />
           </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
           <button
             type="submit"
             disabled={loading}

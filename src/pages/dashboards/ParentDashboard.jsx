@@ -13,13 +13,13 @@ import AppointmentBooking from '../../components/AppointmentBooking';
 import { MOCK_MOOD_TREND } from '../../data/mockData';
 import { RECOMMENDATIONS } from '../../utils/riskAssessment';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Users, Heart } from 'lucide-react';
+import { Users } from 'lucide-react';
 
 export default function ParentDashboard() {
   const { user } = useAuth();
-  const { getChildrenByParent } = useChildren();
+  const { getChildrenByParent, loading } = useChildren();
   const { getAllAssessments } = useAssessment();
-  const parentId = user?.id || 'parent-1';
+  const parentId = user?.id;
   const children = getChildrenByParent(parentId);
   const assessments = getAllAssessments();
 
@@ -37,10 +37,6 @@ export default function ParentDashboard() {
     };
   });
 
-  const avgMood = MOCK_MOOD_TREND.length
-    ? (MOCK_MOOD_TREND.reduce((a, b) => a + b.mood, 0) / MOCK_MOOD_TREND.length).toFixed(1)
-    : '-';
-
   return (
     <div className="space-y-6 max-w-6xl">
       <header>
@@ -49,7 +45,7 @@ export default function ParentDashboard() {
       </header>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <Card>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-soft-sky/50 flex items-center justify-center">
@@ -57,18 +53,7 @@ export default function ParentDashboard() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Children</p>
-              <p className="text-xl font-bold text-gray-800">{children.length}</p>
-            </div>
-          </div>
-        </Card>
-        <Card>
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-soft-mint/50 flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-primary-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Avg mood trend</p>
-              <p className="text-xl font-bold text-gray-800">{avgMood}/5</p>
+              <p className="text-xl font-bold text-gray-800">{loading ? '...' : children.length}</p>
             </div>
           </div>
         </Card>
@@ -91,7 +76,6 @@ export default function ParentDashboard() {
             {childrenWithResults.map((child) => {
               const rec = child.recommendation || RECOMMENDATIONS[child.riskLevel || 'low'];
               const showAppointment = rec?.showAppointment && child.riskLevel === 'high';
-              const showExercises = rec?.showExercises && ['moderate', 'high'].includes(child.riskLevel);
 
               return (
                 <div key={child.id} className="p-4 rounded-xl bg-gray-50 space-y-4">
@@ -103,7 +87,7 @@ export default function ParentDashboard() {
                         {child.avgScore != null && ` • Score: ${child.avgScore}/5`}
                       </p>
                     </div>
-                    <RiskBadge level={child.riskLevel} />
+                    <RiskBadge level={child.riskLevel} size="lg" />
                   </div>
 
                   {child.date && (
@@ -118,15 +102,6 @@ export default function ParentDashboard() {
                         </ul>
                       )}
                     </div>
-                  )}
-
-                  {showExercises && child.date && (
-                    <Link
-                      to="/wellness"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-soft-mint/50 text-gray-800 rounded-lg font-medium hover:bg-soft-mint"
-                    >
-                      <Heart className="w-4 h-4" /> Suggest wellness exercises
-                    </Link>
                   )}
 
                   {showAppointment && <AppointmentBooking childName={child.name} childId={child.id} />}

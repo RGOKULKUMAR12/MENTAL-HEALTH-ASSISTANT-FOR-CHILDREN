@@ -1,64 +1,93 @@
 /**
  * Children Context - Parent-created child accounts
- * Stores child users (username, password, name) linked to parent
+ * Fetches and mutates child users from backend
  */
 
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
-
-const STORAGE_KEY = 'mental-pro-children';
+import { api } from '../api/api';
+import { useAuth } from './AuthContext';
 
 const ChildrenContext = createContext(null);
 
 export function ChildrenProvider({ children: childContent }) {
-  const [childrenList, setChildrenList] = useState(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
+  const { user, isAuthenticated } = useAuth();
+  const [childrenList, setChildrenList] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const resolveParentId = useCallback(
+    (parentId) => {
+      if (parentId != null) return parentId;
+      if (!user) return null;
+      if (user.role === 'parent') return user.id;
+      if (user.role === 'child') return user.parentId;
+      return null;
+    },
+    [user],
+  );
+
+  const refreshChildren = useCallback(async (parentId) => {
+    const effectiveParentId = resolveParentId(parentId);
+    if (!isAuthenticated || effectiveParentId == null) {
+      setChildrenList([]);
       return [];
     }
-  });
+
+    setLoading(true);
+    setError('');
+    try {
+      const data = await api.getChildren(effectiveParentId);
+      const items = data?.items || [];
+      setChildrenList(items);
+      return items;
+    } catch (err) {
+      setError(err?.message || 'Failed to load children');
+      setChildrenList([]);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated, resolveParentId]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(childrenList));
-  }, [childrenList]);
+    refreshChildren().catch(() => {});
+  }, [refreshChildren]);
 
-  const createChild = useCallback((parentId, name, username, password) => {
-    const id = `child-${Date.now()}`;
-    const newChild = {
-      id,
-      parentId,
+  const createChild = useCallback(async (parentId, name, username, password) => {
+    const effectiveParentId = resolveParentId(parentId);
+    const data = await api.createChild(effectiveParentId, {
       name,
-      username: username.trim().toLowerCase(),
-      password, // In production: hash before storing
-      consentStatus: 'approved',
-    };
-    setChildrenList((prev) => [...prev, newChild]);
-    return newChild;
-  }, []);
+      username,
+      password,
+    });
+    const created = data?.child;
+    if (created) {
+      setChildrenList((prev) => [created, ...prev]);
+    }
+    return created;
+  }, [resolveParentId]);
 
   const getChildrenByParent = useCallback(
-    (parentId) => childrenList.filter((c) => c.parentId === parentId),
+    (parentId) => {
+      if (parentId == null) return [];
+      return childrenList.filter((c) => String(c.parentId) === String(parentId));
+    },
     [childrenList],
   );
 
-  const findChildByCredentials = useCallback(
-    (username, password) =>
-      childrenList.find(
-        (c) => c.username === username.trim().toLowerCase() && c.password === password,
-      ),
-    [childrenList],
-  );
-
-  const deleteChild = useCallback((parentId, childId) => {
-    setChildrenList((prev) => prev.filter((c) => !(c.parentId === parentId && c.id === childId)));
-  }, []);
+  const deleteChild = useCallback(async (parentId, childId) => {
+    const effectiveParentId = resolveParentId(parentId);
+    await api.deleteChild(effectiveParentId, childId);
+    setChildrenList((prev) => prev.filter((c) => String(c.id) !== String(childId)));
+  }, [resolveParentId]);
 
   const value = {
     childrenList,
+    loading,
+    error,
+    refreshChildren,
     createChild,
     getChildrenByParent,
-    findChildByCredentials,
     deleteChild,
   };
   return (

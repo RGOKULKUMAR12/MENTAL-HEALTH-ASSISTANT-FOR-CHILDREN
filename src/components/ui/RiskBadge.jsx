@@ -8,12 +8,19 @@ const styles = {
   high: 'bg-risk-high/20 text-risk-high border-risk-high/30',
 };
 
-export default function RiskBadge({ level = 'low' }) {
+const sizeStyles = {
+  sm: 'px-2.5 py-1 text-xs',
+  md: 'px-3 py-1 text-sm',
+  lg: 'px-4 py-1.5 text-base font-semibold',
+};
+
+export default function RiskBadge({ level = 'low', size = 'md' }) {
   const style = styles[level.toLowerCase()] || styles.low;
   const label = level.charAt(0).toUpperCase() + level.slice(1);
+  const sizeStyle = sizeStyles[size] || sizeStyles.md;
   
   return (
-    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${style}`}>
+    <span className={`inline-flex items-center rounded-full border ${style} ${sizeStyle}`}>
       {label} (informational)
     </span>
   );

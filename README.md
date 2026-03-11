@@ -117,9 +117,10 @@ See **[PROJECT_FLOW.md](./PROJECT_FLOW.md)** for:
 
 ## Backend integration
 
-- Use `src/api/api.js` for API calls. Replace mock responses with real requests.
-- Use `VITE_API_URL` for the base API URL.
-- All endpoints are documented as comments in the API module.
+- Frontend API client: `src/api/api.js`
+- Set `VITE_API_URL` (default: `http://localhost:4000/api`)
+- Backend service is in `backend/` (Express + SQLite)
+- Backend setup and endpoints: `backend/README.md`
 
 ## Demo login
 
