@@ -38,4 +38,68 @@ export async function seedIfEmpty() {
       showExercises: true,
     }),
   );
+
+  // Add sample doctors
+  const doctor1 = db.prepare(`
+    INSERT INTO doctors (name, specialization, email, phone, bio, available)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(
+    'Dr. Emily Watson',
+    'Child Psychologist',
+    'emily.watson@clinic.com',
+    '+1-555-0101',
+    'Specializes in anxiety and depression in children',
+    1
+  );
+  const doctor1Id = doctor1.lastInsertRowid;
+
+  const doctor2 = db.prepare(`
+    INSERT INTO doctors (name, specialization, email, phone, bio, available)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(
+    'Dr. Michael Chen',
+    'Child Psychiatrist',
+    'michael.chen@clinic.com',
+    '+1-555-0102',
+    'Expert in ADHD and behavioral disorders',
+    1
+  );
+  const doctor2Id = doctor2.lastInsertRowid;
+
+  const doctor3 = db.prepare(`
+    INSERT INTO doctors (name, specialization, email, phone, bio, available)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(
+    'Dr. Sarah Martinez',
+    'Child Counselor',
+    'sarah.martinez@clinic.com',
+    '+1-555-0103',
+    'Focuses on social skills and emotional development',
+    1
+  );
+  const doctor3Id = doctor3.lastInsertRowid;
+
+  // Add sample time slots
+  const today = new Date();
+  const dates = [];
+  for (let i = 1; i <= 7; i++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() + i);
+    dates.push(date.toISOString().split('T')[0]);
+  }
+
+  const times = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'];
+
+  // Add time slots for each doctor
+  [doctor1Id, doctor2Id, doctor3Id].forEach((doctorId) => {
+    dates.forEach((date) => {
+      times.forEach((time) => {
+        db.prepare(`
+          INSERT INTO time_slots (doctor_id, date, time, duration_minutes, available)
+          VALUES (?, ?, ?, ?, ?)
+        `).run(doctorId, date, time, 30, 1);
+      });
+    });
+  });
 }
+

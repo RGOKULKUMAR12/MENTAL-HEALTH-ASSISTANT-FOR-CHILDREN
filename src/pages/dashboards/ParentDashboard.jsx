@@ -3,22 +3,25 @@
  * Risk-based recommendations, appointment booking for high risk
  */
 
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChildren } from '../../contexts/ChildrenContext';
 import { useAssessment } from '../../contexts/AssessmentContext';
 import Card from '../../components/ui/Card';
 import RiskBadge from '../../components/ui/RiskBadge';
-import AppointmentBooking from '../../components/AppointmentBooking';
+import AppointmentBookingModal from '../../components/AppointmentBookingModal';
 import { MOCK_MOOD_TREND } from '../../data/mockData';
 import { RECOMMENDATIONS } from '../../utils/riskAssessment';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
-import { Users } from 'lucide-react';
+import { Users, Calendar } from 'lucide-react';
 
 export default function ParentDashboard() {
   const { user } = useAuth();
   const { getChildrenByParent, loading } = useChildren();
   const { getAllAssessments } = useAssessment();
+  const [bookingOpen, setBookingOpen] = useState(false);
+  const [selectedChild, setSelectedChild] = useState(null);
   const parentId = user?.id;
   const children = getChildrenByParent(parentId);
   const assessments = getAllAssessments();
@@ -94,6 +97,35 @@ export default function ParentDashboard() {
                     <div className="pl-4 border-l-4 border-primary-200">
                       <p className="font-medium text-gray-800">{rec?.title}</p>
                       <p className="text-sm text-gray-600 mt-1">{rec?.description}</p>
+                      {child.conditions && child.conditions.length > 0 && (
+                        <div className="mt-4 p-4 bg-gradient-to-r from-red-50 to-orange-50 rounded-lg border-2 border-red-200">
+                          <p className="text-sm font-bold text-red-800 mb-2 flex items-center gap-2">
+                            ⚠️ Identified Mental Health Areas
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {child.conditions.map((item, idx) => (
+                              <div
+                                key={idx}
+                                className="px-4 py-3 bg-white rounded-lg border-l-4 border-red-500 shadow-sm hover:shadow-md transition-shadow"
+                              >
+                                <div className="flex items-start justify-between mb-1">
+                                  <p className="font-bold text-red-700">{item.condition.name}</p>
+                                  <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-bold">
+                                    {item.confidence}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-600 mt-1">{item.condition.description}</p>
+                                <p className="text-xs text-gray-700 font-medium mt-2">Key symptoms:</p>
+                                <ul className="text-xs text-gray-600 mt-1 space-y-1">
+                                  {item.condition.symptoms && item.condition.symptoms.slice(0, 2).map((symptom, i) => (
+                                    <li key={i}>• {symptom}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {rec?.actions && rec.actions.length > 0 && (
                         <ul className="mt-2 space-y-1 text-sm text-gray-700">
                           {rec.actions.map((action, i) => (
@@ -104,7 +136,18 @@ export default function ParentDashboard() {
                     </div>
                   )}
 
-                  {showAppointment && <AppointmentBooking childName={child.name} childId={child.id} />}
+                  {showAppointment && (
+                    <button
+                      onClick={() => {
+                        setSelectedChild(child);
+                        setBookingOpen(true);
+                      }}
+                      className="mt-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-300 flex items-center gap-2"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      Book Appointment
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -128,6 +171,20 @@ export default function ParentDashboard() {
             </ResponsiveContainer>
           </div>
         </Card>
+      )}
+
+      {/* Appointment Booking Modal */}
+      {selectedChild && (
+        <AppointmentBookingModal
+          isOpen={bookingOpen}
+          onClose={() => {
+            setBookingOpen(false);
+            setSelectedChild(null);
+          }}
+          parentId={parentId || ''}
+          childId={selectedChild.id || ''}
+          childName={selectedChild.name || 'Child'}
+        />
       )}
     </div>
   );

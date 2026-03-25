@@ -5,7 +5,7 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 const TOKEN_KEY = 'mental-pro-token';
 
-function getToken() {
+export function getToken() {
   try {
     return localStorage.getItem(TOKEN_KEY);
   } catch {
@@ -42,6 +42,23 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  // Generic HTTP methods
+  async get(path) {
+    return request(path, { method: 'GET' });
+  },
+
+  async post(path, body) {
+    return request(path, { method: 'POST', body: JSON.stringify(body) });
+  },
+
+  async put(path, body) {
+    return request(path, { method: 'PUT', body: JSON.stringify(body) });
+  },
+
+  async delete(path) {
+    return request(path, { method: 'DELETE' });
+  },
+
   // Auth endpoints
   async login(credentials) {
     const data = await request('/auth/login', {

@@ -3,21 +3,51 @@
  * No individual child data visible
  */
 
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Card from '../../components/ui/Card';
+import AdminUserManagement from '../../components/AdminUserManagement';
 import { MOCK_AGGREGATE_ANALYTICS } from '../../data/mockData';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { BarChart3, Users, FileText } from 'lucide-react';
 
 export default function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState('analytics');
+
   return (
     <div className="space-y-6 max-w-6xl">
       <header>
-        <h1 className="text-2xl font-bold text-gray-800">Analytics Dashboard</h1>
-        <p className="text-gray-600 mt-1">Aggregated, anonymized data only. No individual identifiers.</p>
+        <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
+        <p className="text-gray-600 mt-1">Analytics and user management</p>
       </header>
 
-      {/* Info banner */}
+      {/* Tab Navigation */}
+      <div className="flex gap-4 border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab('analytics')}
+          className={`px-4 py-3 font-medium border-b-2 transition-colors ${
+            activeTab === 'analytics'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-600 hover:text-gray-800'
+          }`}
+        >
+          Analytics
+        </button>
+        <button
+          onClick={() => setActiveTab('users')}
+          className={`px-4 py-3 font-medium border-b-2 transition-colors ${
+            activeTab === 'users'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-600 hover:text-gray-800'
+          }`}
+        >
+          Users & Doctors
+        </button>
+      </div>
+
+      {/* Analytics Tab */}
+      {activeTab === 'analytics' && (
+        <div className="space-y-6">
       <Card className="bg-primary-50 border border-primary-200">
         <p className="text-sm text-gray-700">
           <strong>Privacy note:</strong> This dashboard shows only aggregated statistics. Individual child data is not visible.
@@ -104,6 +134,13 @@ export default function AdminDashboard() {
         <Link to="/reports" className="text-primary-600 font-medium hover:underline">View full analytics</Link>
         <Link to="/alerts" className="text-primary-600 font-medium hover:underline">View alerts</Link>
       </div>
+        </div>
+      )}
+
+      {/* Users Tab */}
+      {activeTab === 'users' && (
+        <AdminUserManagement />
+      )}
     </div>
   );
 }

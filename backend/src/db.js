@@ -61,5 +61,45 @@ export function initDb() {
       FOREIGN KEY(parent_id) REFERENCES users(id),
       FOREIGN KEY(child_id) REFERENCES users(id)
     );
+
+    CREATE TABLE IF NOT EXISTS doctors (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      specialization TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      phone TEXT,
+      bio TEXT,
+      available INTEGER DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS time_slots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      doctor_id INTEGER NOT NULL,
+      date TEXT NOT NULL,
+      time TEXT NOT NULL,
+      duration_minutes INTEGER DEFAULT 30,
+      available INTEGER DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY(doctor_id) REFERENCES doctors(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS appointments_updated (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      parent_id INTEGER NOT NULL,
+      child_id INTEGER NOT NULL,
+      doctor_id INTEGER,
+      time_slot_id INTEGER,
+      reason TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      appointment_date TEXT,
+      appointment_time TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(child_id, time_slot_id),
+      FOREIGN KEY(parent_id) REFERENCES users(id),
+      FOREIGN KEY(child_id) REFERENCES users(id),
+      FOREIGN KEY(doctor_id) REFERENCES doctors(id),
+      FOREIGN KEY(time_slot_id) REFERENCES time_slots(id)
+    );
   `);
 }

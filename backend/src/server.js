@@ -9,6 +9,7 @@ import assessmentRoutes from './routes/assessments.js';
 import appointmentRoutes from './routes/appointments.js';
 import alertRoutes from './routes/alerts.js';
 import adminRoutes from './routes/admin.js';
+import doctorRoutes from './routes/doctors.js';
 import { allowRoles, requireAuth } from './middleware/auth.js';
 
 const app = express();
@@ -23,6 +24,7 @@ app.get('/health', (_req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/parents', requireAuth, parentRoutes);
+app.use('/api', doctorRoutes);
 app.use('/api', requireAuth, assessmentRoutes);
 app.use('/api/appointments', requireAuth, appointmentRoutes);
 app.use('/api/alerts', requireAuth, alertRoutes);
@@ -42,3 +44,4 @@ async function bootstrap() {
 }
 
 bootstrap();
+
