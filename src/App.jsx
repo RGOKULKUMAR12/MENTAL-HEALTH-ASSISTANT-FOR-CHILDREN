@@ -46,6 +46,7 @@ function App() {
       {/* Admin routes */}
       <Route element={<ProtectedLayout allowedRoles={['admin']} />}>
         <Route path="/dashboard/admin" element={<AdminDashboard />} />
+        <Route path="/dashboard/admin/users" element={<AdminDashboard />} />
       </Route>
 
       {/* Shared routes */}

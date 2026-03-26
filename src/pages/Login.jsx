@@ -34,7 +34,7 @@ export default function Login() {
   const roles = [
     { value: 'parent', label: "I'm a parent", icon: Users },
     { value: 'child', label: "I'm a kid", icon: Heart },
-    { value: 'admin', label: "I'm a counselor/admin", icon: Shield },
+    { value: 'admin', label: "I'm an admin", icon: Shield },
   ];
 
   const labelForIdentifier = role === 'child' ? 'User ID' : 'Email';

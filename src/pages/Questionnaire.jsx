@@ -39,11 +39,19 @@ export default function Questionnaire() {
   const progress = totalQuestions ? (answeredCount / totalQuestions) * 100 : 0;
 
   // Timer for waiting 5 seconds after answer
-  const [_, setTimerUpdate] = useState(0);
+  const [timerSeconds, setTimerSeconds] = useState(0);
   useEffect(() => {
-    if (!answerTime) return;
+    if (!answerTime) {
+      setTimerSeconds(0);
+      return;
+    }
     const interval = setInterval(() => {
-      setTimerUpdate((prev) => prev + 1);
+      const elapsed = Math.floor((Date.now() - answerTime) / 1000);
+      const remaining = Math.max(0, 5 - elapsed);
+      setTimerSeconds(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+      }
     }, 100);
     return () => clearInterval(interval);
   }, [answerTime]);
@@ -350,7 +358,7 @@ export default function Questionnaire() {
             {responses[currentQuestion.id] && !canProceedToNext && (
               <div className="text-center mb-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <p className="text-sm text-blue-700 font-medium">
-                  ⏱️ Take your time to think... Waiting {Math.ceil((5000 - (Date.now() - answerTime)) / 1000)} seconds
+                  ⏱️ Take your time to think... Waiting {timerSeconds} seconds
                 </p>
               </div>
             )}

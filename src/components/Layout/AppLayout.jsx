@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Home, ClipboardList, Heart, BarChart3, Bell, Settings, LogOut, Menu, X } from 'lucide-react';
+import { Home, ClipboardList, Heart, BarChart3, Bell, Settings, LogOut, Menu, X, Users, Baby } from 'lucide-react';
 
 const navConfig = {
   child: [
@@ -16,13 +16,14 @@ const navConfig = {
   ],
   parent: [
     { to: '/dashboard/parent', icon: Home, label: 'Dashboard' },
-    { to: '/dashboard/parent/children', icon: ClipboardList, label: 'My Children' },
+    { to: '/dashboard/parent/children', icon: Baby, label: 'My Children' },
     { to: '/reports', icon: BarChart3, label: 'Reports' },
     { to: '/alerts', icon: Bell, label: 'Alerts' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ],
   admin: [
     { to: '/dashboard/admin', icon: Home, label: 'Dashboard' },
+    { to: '/dashboard/admin/users', icon: Users, label: 'Users & Doctors' },
     { to: '/reports', icon: BarChart3, label: 'Analytics' },
     { to: '/alerts', icon: Bell, label: 'Alerts' },
     { to: '/settings', icon: Settings, label: 'Settings' },

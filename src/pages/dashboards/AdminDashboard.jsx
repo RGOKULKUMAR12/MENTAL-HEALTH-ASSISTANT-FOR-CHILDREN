@@ -3,8 +3,8 @@
  * No individual child data visible
  */
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import Card from '../../components/ui/Card';
 import AdminUserManagement from '../../components/AdminUserManagement';
 import { MOCK_AGGREGATE_ANALYTICS } from '../../data/mockData';
@@ -12,7 +12,12 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell, 
 import { BarChart3, Users, FileText } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('analytics');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(location.pathname.includes('/users') ? 'users' : 'analytics');
+
+  useEffect(() => {
+    setActiveTab(location.pathname.includes('/users') ? 'users' : 'analytics');
+  }, [location.pathname]);
 
   return (
     <div className="space-y-6 max-w-6xl">
