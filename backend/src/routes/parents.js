@@ -89,8 +89,18 @@ router.delete('/:parentId/children/:childId', (req, res) => {
     return res.status(404).json({ message: 'Child not found' });
   }
 
+  const childName = db.prepare('SELECT name FROM users WHERE id = ?').get(childId)?.name || 'Deleted child';
+  db.prepare(`
+    UPDATE appointments_updated
+    SET child_name = ?, child_id = NULL
+    WHERE child_id = ?
+  `).run(childName, childId);
+  db.prepare(`
+    UPDATE appointments
+    SET child_name = ?, child_id = NULL
+    WHERE child_id = ?
+  `).run(childName, childId);
   db.prepare('DELETE FROM assessments WHERE child_id = ?').run(childId);
-  db.prepare('DELETE FROM appointments WHERE child_id = ?').run(childId);
   db.prepare('DELETE FROM alerts WHERE child_id = ?').run(childId);
   db.prepare('DELETE FROM users WHERE id = ?').run(childId);
 

@@ -124,8 +124,18 @@ router.delete('/doctors/:doctorId', requireAuth, (req, res) => {
     if (role !== 'admin') return res.status(403).json({ error: 'Unauthorized' });
 
     const { doctorId } = req.params;
-    db.prepare('UPDATE doctors SET available = 0 WHERE id = ?').run(doctorId);
-    res.json({ success: true, message: 'Doctor deleted' });
+
+    // First delete associated time slots
+    db.prepare('DELETE FROM time_slots WHERE doctor_id = ?').run(doctorId);
+
+    // Then delete the doctor
+    const result = db.prepare('DELETE FROM doctors WHERE id = ?').run(doctorId);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Doctor not found' });
+    }
+
+    res.json({ success: true, message: 'Doctor deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -3,6 +3,16 @@ import { db } from './db.js';
 
 export async function seedIfEmpty() {
   const usersCount = db.prepare('SELECT COUNT(*) AS count FROM users').get().count;
+  const existingAdminByEmail = db.prepare('SELECT id FROM users WHERE role = ? AND email = ?').get('admin', 'admin@example.com');
+  if (existingAdminByEmail) {
+    db.prepare('UPDATE users SET name = ? WHERE id = ?').run('Dr. Gokul Kumar', existingAdminByEmail.id);
+  }
+
+  const existingAdminByName = db.prepare('SELECT id FROM users WHERE role = ? AND name = ?').get('admin', 'Dr. Johnson');
+  if (existingAdminByName) {
+    db.prepare('UPDATE users SET name = ? WHERE id = ?').run('Dr. Gokul Kumar', existingAdminByName.id);
+  }
+
   if (usersCount > 0) return;
 
   const parentPassword = await bcrypt.hash('parent123', 10);
@@ -15,7 +25,7 @@ export async function seedIfEmpty() {
   const parentId = parentInfo.lastInsertRowid;
 
   db.prepare('INSERT INTO users (role, name, email, password_hash) VALUES (?, ?, ?, ?)')
-    .run('admin', 'Dr. Johnson', 'admin@example.com', adminPassword);
+    .run('admin', 'Dr. Gokul Kumar', 'admin@example.com', adminPassword);
 
   const childInfo = db
     .prepare('INSERT INTO users (role, name, username, password_hash, parent_id) VALUES (?, ?, ?, ?, ?)')

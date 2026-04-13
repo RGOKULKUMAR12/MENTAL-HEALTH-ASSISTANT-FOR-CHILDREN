@@ -19,6 +19,8 @@ import Reports from './pages/Reports';
 import Alerts from './pages/Alerts';
 import Settings from './pages/Settings';
 import ParentChildren from './pages/ParentChildren';
+import AdminParentsManagement from './components/AdminParentsManagement';
+import AdminDoctorsManagement from './components/AdminDoctorsManagement';
 
 function App() {
   const { isAuthenticated, user } = useAuth();
@@ -46,7 +48,8 @@ function App() {
       {/* Admin routes */}
       <Route element={<ProtectedLayout allowedRoles={['admin']} />}>
         <Route path="/dashboard/admin" element={<AdminDashboard />} />
-        <Route path="/dashboard/admin/users" element={<AdminDashboard />} />
+        <Route path="/dashboard/admin/parents" element={<AdminParentsManagement />} />
+        <Route path="/dashboard/admin/doctors" element={<AdminDoctorsManagement />} />
       </Route>
 
       {/* Shared routes */}

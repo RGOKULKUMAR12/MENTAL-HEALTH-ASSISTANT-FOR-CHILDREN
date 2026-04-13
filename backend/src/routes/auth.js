@@ -109,7 +109,7 @@ router.post('/admin/create-parent', requireAuth, async (req, res) => {
   try {
     const passwordHash = await bcrypt.hash(password, 10);
     const info = db
-      .prepare('INSERT INTO users (role, name, email, password_hash, created_at) VALUES (?, ?, ?, ?, datetime("now"))')
+      .prepare('INSERT INTO users (role, name, email, password_hash) VALUES (?, ?, ?, ?)')
       .run('parent', name.trim(), email.trim().toLowerCase(), passwordHash);
 
     const user = db.prepare('SELECT id, role, name, email, created_at FROM users WHERE id = ?').get(info.lastInsertRowid);

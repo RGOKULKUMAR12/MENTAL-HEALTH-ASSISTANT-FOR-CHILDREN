@@ -121,22 +121,32 @@ export default function AdminUserManagement() {
     }
   };
 
-  const deleteUser = async (userId) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:4000/auth/admin/users/${userId}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
+  const deleteUser = async (userId, userName) => {
+    const isConfirmed = window.confirm(
+      `⚠️ WARNING: This will permanently delete "${userName}" and all associated data.\n\nThis action cannot be undone. Are you sure?`
+    );
+    
+    if (!isConfirmed) return;
 
-        if (response.ok) {
-          alert('User deleted successfully');
-          fetchAllUsers();
-        }
-      } catch (error) {
-        console.error('Error deleting user:', error);
+    try {
+      const token = getToken();
+      const response = await fetch(`http://localhost:4000/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (handleAuthError(response.status)) return;
+
+      if (response.ok) {
+        alert('✓ User deleted successfully');
+        fetchAllUsers();
+      } else {
+        const err = await response.json();
+        alert(`Error: ${err.error || 'Failed to delete user'}`);
       }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Failed to delete user: ' + error.message);
     }
   };
 
@@ -574,10 +584,11 @@ export default function AdminUserManagement() {
                     <td className="py-3 px-4 text-gray-600">{parent.created_at ? new Date(parent.created_at).toLocaleDateString() : 'N/A'}</td>
                     <td className="py-3 px-4 text-center">
                       <button
-                        onClick={() => deleteUser(parent.id)}
-                        className="text-red-600 hover:text-red-800 font-medium"
+                        onClick={() => deleteUser(parent.id, parent.name)}
+                        className="text-red-600 hover:text-red-800 hover:bg-red-50 p-2 rounded transition-colors"
+                        title="Delete parent"
                       >
-                        <Trash2 className="w-4 h-4 inline" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </td>
                   </tr>

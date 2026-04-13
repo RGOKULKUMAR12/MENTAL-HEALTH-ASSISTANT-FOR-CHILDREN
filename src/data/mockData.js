@@ -21,7 +21,7 @@ export const MOCK_USERS = {
   },
   admin: {
     id: 'admin-1',
-    name: 'Dr. Johnson',
+    name: 'Dr. Gokul Kumar',
     role: 'admin',
     email: 'admin@example.com',
   },

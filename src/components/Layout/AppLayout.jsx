@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Home, ClipboardList, Heart, BarChart3, Bell, Settings, LogOut, Menu, X, Users, Baby } from 'lucide-react';
+import { Home, ClipboardList, Heart, BarChart3, Bell, Settings, LogOut, Menu, X, Users, Baby, Stethoscope } from 'lucide-react';
 
 const navConfig = {
   child: [
@@ -18,14 +18,12 @@ const navConfig = {
     { to: '/dashboard/parent', icon: Home, label: 'Dashboard' },
     { to: '/dashboard/parent/children', icon: Baby, label: 'My Children' },
     { to: '/reports', icon: BarChart3, label: 'Reports' },
-    { to: '/alerts', icon: Bell, label: 'Alerts' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ],
   admin: [
     { to: '/dashboard/admin', icon: Home, label: 'Dashboard' },
-    { to: '/dashboard/admin/users', icon: Users, label: 'Users & Doctors' },
-    { to: '/reports', icon: BarChart3, label: 'Analytics' },
-    { to: '/alerts', icon: Bell, label: 'Alerts' },
+    { to: '/dashboard/admin/parents', icon: Users, label: 'Parents & Children' },
+    { to: '/dashboard/admin/doctors', icon: Stethoscope, label: 'Doctors' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ],
 };
@@ -91,6 +89,7 @@ export default function AppLayout({ children }) {
               <NavLink
                 key={to}
                 to={to}
+                end
                 className={({ isActive }) => `
                   flex items-center gap-3 px-4 py-3 rounded-xl transition-colors
                   ${isActive 
