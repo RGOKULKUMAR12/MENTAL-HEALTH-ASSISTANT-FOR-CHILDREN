@@ -1,230 +1,146 @@
-# Mindful Kids – Mental Health & Well-Being Surveillance for Children
+# Mindful Kids - Mental Health Assistant for Children
 
-A modern, responsive frontend for a Mental Health and Well-Being Surveillance, Assessment and Tracking System for Children. The app is **ethical, child-friendly, privacy-aware, and supportive** (non-diagnostic).
+Mindful Kids is a role-based web platform for child mental well-being tracking.
+It supports children, parents, doctors, and admins with a complete workflow from questionnaire submission to consent-based appointment management.
+
+## Documentation
+
+Start here:
+- [MASTER_PROJECT_REPORT.md](MASTER_PROJECT_REPORT.md) (full technical master guide)
+- [Report/MASTER_PROJECT_REPORT.pdf](Report/MASTER_PROJECT_REPORT.pdf) (PDF version)
+- [PROJECT_FLOW.md](PROJECT_FLOW.md) (quick flow summary)
+- [backend/README.md](backend/README.md) (backend-specific notes)
+- [CONTINUE_CHAT.md](CONTINUE_CHAT.md) (cross-device continuation template)
+
+## Core Features
+
+### Role-based access (RBAC)
+- Child: check-in questionnaire, wellness activities, streak tracking
+- Parent: child management, risk insights, appointment booking
+- Doctor: appointment triage, future schedule, patient reports, password update
+- Admin: parent/doctor management, analytics dashboard
+
+### Assessment and risk flow
+- Child submits structured questionnaire responses
+- Backend computes average score and risk level
+- Parent sees recommendations and condition highlights
+- Alerts are generated for moderate/high concern levels
+
+### Appointment and consent workflow
+- Parent booking requires explicit data-sharing consent
+- Parent booking is temporarily withheld when child has an active appointment
+- Doctor can confirm, reject, postpone, or complete appointment
+- Slot availability is updated automatically based on status transitions
+
+### Doctor onboarding and security
+- Admin creates doctor account
+- Temporary password is auto-generated and emailed
+- First doctor login is forced to change password via popup modal
 
 ## Tech Stack
 
-- **React 18** (Vite)
-- **Tailwind CSS** for styling
-- **Recharts** for visualizations
-- **React Router v6** for routing
-- **Lucide React** for icons
+Frontend:
+- React 18
+- Vite
+- Tailwind CSS
+- React Router v6
+- Recharts
+- Lucide React
 
-## Features
+Backend:
+- Node.js
+- Express
+- SQLite (better-sqlite3)
+- JWT (jsonwebtoken)
+- bcryptjs
+- nodemailer
+- dotenv
 
-### User roles (RBAC)
+## Quick Start
 
-- **Child** – Check-ins, wellness activities, dashboard
-- **Parent** – Linked children, consent, reports, alerts, appointment booking
-- **Admin/Counselor** – Aggregated analytics, doctor management, user administration
+### 1. Prerequisites
+- Node.js 18+ (Node 20+ recommended)
+- npm
 
-### Parent–Child linking and consent
+### 2. Install dependencies
+Project root:
 
-- List of linked children
-- Pending consent requests
-- Approve/reject child participation
-- Child cannot submit assessments without parent approval
-
-### Doctor & Appointment Management
-
-- **Admin portal:** Create and manage doctors with bio and specialization
-- **Time slot management:** Admins add multiple time slots per doctor during registration
-- **Sequential slot allocation:** Next slot automatically starts at previous slot end time
-- **Date picker:** Only allows booking from today onwards (no past dates)
-- **Appointment booking:** Parents can select doctor and available time slot
-- **Duplicate prevention:** Same child cannot book the same time slot twice (database-level constraint)
-- **Email notifications:** Doctor receives email notification when appointment is booked
-
-### Mental Health Condition Identification
-
-- **8 mental health conditions identified:** Anxiety Disorders, Depression, ADHD, OCD, PTSD, Panic Disorder, Insomnia, Stress-related Disorders
-- **Confidence scoring:** Each condition shows confidence level (high/moderate/low)
-- **Condition details:** Full description and key symptoms displayed to parents
-- **Prominent display:** Conditions highlighted with red/orange visual styling on parent dashboard
-
-### Longitudinal tracking
-
-- Weekly and monthly mood/wellness trend graphs
-- Historical risk-level timeline (informational)
-
-### Early warning UI
-
-- Non-alarming, informational alerts
-- Color-coded (yellow/orange/red)
-- “Risk increase detected” messaging (non-diagnostic)
-
-### Wellness activities
-
-- Timer-based breathing exercise
-- Mindfulness prompts (5–4–3–2–1 grounding)
-- Positive habit reminders
-
-### Analytics and reporting
-
-- **Parent:** summary cards, mood trends, downloadable/print-friendly layout
-- **Admin:** aggregated, anonymized analytics (no individual child data)
-
-### Questionnaire module (Child portal)
-
-- Child-friendly Likert scale (1–5) with emoji inputs
-- **Grouped questions:** Emotional, Behavioral, Cognitive, Social
-- **Card-based section selection:** Visual cards to choose assessment topics
-- **Single-question pagination:** One question per screen for better focus
-- **5-second waiting timer:** Encourages reflection before proceeding
-- **Progress bars:** Shows overall and section-specific progress
-- **Score-based risk assessment** (no ML): avg score determines Low/Moderate/High risk
-
-### Risk-based recommendations (Parent dashboard)
-
-- **Low risk:** Keep up wellness, regular check-ins
-- **Moderate risk:** Suggest wellness exercises (breathing, grounding)
-- **High risk:** Appointment booking section for counselor
-- **Identified conditions:** Display mental health areas for parental awareness
-
-## Project structure
-
-```
-src/
-├── api/              # API service layer with generic HTTP methods
-├── components/
-│   ├── AdminUserManagement.jsx      # Admin portal for user & doctor management
-│   ├── AppointmentBookingModal.jsx  # Appointment booking workflow
-│   ├── Layout/       # AppLayout, ProtectedLayout
-│   └── ui/           # Card, RiskBadge
-├── contexts/         # AuthContext (RBAC)
-├── data/             # Mock data
-├── pages/            # All page components
-│   ├── dashboards/   # Child, Parent (with condition display), Admin
-│   ├── DoctorManagementAdmin.jsx
-│   ├── Login.jsx
-│   ├── Register.jsx
-│   ├── Questionnaire.jsx (improved with cards & pagination)
-│   ├── Wellness.jsx
-│   ├── Reports.jsx
-│   ├── Alerts.jsx
-│   ├── Settings.jsx
-│   └── ParentChildren.jsx
-├── utils/
-│   ├── mentalIllnessIdentification.js  # 8 condition definitions
-│   ├── riskAssessment.js
-│   └── streakUtils.js
-├── App.jsx
-├── main.jsx
-└── index.css
-
-backend/
-├── src/
-│   ├── routes/
-│   │   ├── auth.js                # User authentication & admin endpoints
-│   │   ├── doctors.js             # Doctor CRUD & time slot management
-│   │   ├── appointments.js        # Appointment booking with duplicate prevention
-│   │   ├── assessments.js
-│   │   ├── alerts.js
-│   │   ├── parents.js
-│   │   └── admin.js
-│   ├── middleware/
-│   │   └── auth.js                # JWT verification & RBAC
-│   ├── db.js                      # SQLite with UNIQUE constraint on (child_id, time_slot_id)
-│   ├── seed.js                    # Database initialization
-│   └── server.js                  # Express app setup
-├── data/
-│   └── mental-pro.db              # SQLite database
-└── package.json
+```bash
+npm install
 ```
 
-## Project flow & user responsibilities
+Backend:
 
-See **[PROJECT_FLOW.md](./PROJECT_FLOW.md)** for:
-- How to run the project
-- End-to-end flow
-- Risk-based recommendations
-- Responsibilities of Child, Parent, and Admin
+```bash
+cd backend
+npm install
+```
 
-## Recent updates (March 2026 Checkpoint)
+### 3. Configure environment
+Create backend env file:
+- Copy backend/.env.example to backend/.env
 
-### Admin Features
-- Centralized user management portal for creating parents and doctors
-- Real-time parent/child/doctor listing from database
-- Modal-based forms for streamlined data entry
-- Session-aware authentication with automatic logout on expiry
+Set at minimum:
+- JWT_SECRET
+- EMAIL_USER
+- EMAIL_PASS
+- APP_URL (usually http://localhost:3000)
+- PORT (usually 4000)
 
-### Doctor Management
-- Create doctors with specialization, contact info, and bio
-- Add multiple time slots during doctor registration
-- Sequential time slot allocation (9:00-9:30, 9:30-10:00, etc.)
-- Date restrictions (no past dates) for new slots
+### 4. Run the app
+Terminal A (project root):
 
-### Appointment System
-- Parent-friendly booking modal with visual doctor cards
-- Show available time slots per selected doctor
-- Booking confirmation with appointment ID
-- Database-level duplicate prevention (UNIQUE constraint)
-- Email notifications to doctors on new bookings
+```bash
+npm run dev
+```
 
-### Mental Health Insights
-- Automatic identification of 8 mental health conditions
-- Confidence-based scoring system
-- Enhanced parent dashboard with condition cards
-- Red/orange styling for visual prominence
+Terminal B (backend):
 
-### UX/UI Improvements
-- Token management fixes (prevent logout loops)
-- Robust API response parsing (array/object handling)
-- Better error messages with actionable feedback
-- Responsive modal layouts with scrolling support
-- Accessible form inputs with date/time pickers
+```bash
+cd backend
+npm run dev
+```
 
-## Getting started
+Frontend:
+- http://localhost:3000
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+Backend:
+- http://localhost:4000
 
-2. Start the development server:
-   ```bash
-   npm run dev
-   ```
+Health endpoint:
+- http://localhost:4000/health
 
-3. Start the backend server (in another terminal):
-   ```bash
-   cd backend
-   npm start
-   ```
-   Backend runs on `http://localhost:4000`
+## Build Commands
 
-4. Build for production:
-   ```bash
-   npm run build
-   ```
+Project root:
 
-5. Preview production build:
-   ```bash
-   npm run preview
-   ```
+```bash
+npm run build
+npm run preview
+```
 
-## Backend integration
+## Repository Structure (High Level)
 
-- Frontend API client: `src/api/api.js` (generic get, post, put, delete methods)
-- Set `VITE_API_URL` (default: `http://localhost:4000/api`)
-- Backend service is in `backend/` (Express + SQLite)
-- **Doctor endpoints:** Create, read, update, delete doctors and time slots
-- **Appointment endpoints:** Book appointments with duplicate prevention validation
-- **Admin endpoints:** User management (create parents, view users, delete users)
-- **Email notifications:** Nodemailer integration for appointment confirmations
-- Backend setup and endpoints: `backend/README.md`
+- [src](src): frontend app source
+- [backend/src](backend/src): API routes, middleware, DB init/migrations
+- [backend/data](backend/data): SQLite DB files
+- [Report](Report): generated and document files
+- [MASTER_PROJECT_REPORT.md](MASTER_PROJECT_REPORT.md): master architecture and workflow guide
 
-## Demo login
+For detailed file-by-file explanation, use:
+- [MASTER_PROJECT_REPORT.md](MASTER_PROJECT_REPORT.md)
 
-Use any email/password and choose a role on the login page:
+## Current Workflow Summary
 
-- **Child** – Access to child dashboard, questionnaire, wellness
-- **Parent** – Access to parent dashboard, children, reports
-- **Admin** – Access to admin dashboard and analytics
+1. Parent creates child account.
+2. Child signs in and submits questionnaire.
+3. Backend stores assessment and risk level.
+4. Parent views recommendations and, if needed, books doctor with consent.
+5. Doctor receives notification, signs in, and manages appointment status.
+6. Parent booking availability updates automatically based on appointment state.
 
-## Ethical and privacy notes
+## Notes
 
-- No medical diagnosis; focus on monitoring and support
-- Child-friendly design and language
-- Parent consent required before child assessments
-- Admin views only aggregated, anonymized data
+- This is a support and monitoring system, not a medical diagnosis engine.
+- Parent consent is enforced before doctor sees child assessment data.
+- Keep .env and database artifacts out of public sharing.
