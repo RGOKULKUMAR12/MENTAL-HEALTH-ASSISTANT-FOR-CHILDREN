@@ -1,41 +1,35 @@
 # Mindful Kids - Mental Health Assistant for Children
 
-Mindful Kids is a role-based web platform for child mental well-being tracking.
-It supports children, parents, doctors, and admins with a complete workflow from questionnaire submission to consent-based appointment management.
+Mindful Kids is a role-based web app that helps families track child well-being in a safe and simple way.
+
+It supports four user roles:
+- Child: answers daily check-in questions and uses wellness tools
+- Parent: creates child accounts, views risk insights, books appointments
+- Doctor: reviews appointments, confirms or rejects bookings, sees consented child history
+- Admin: manages users and reviews system analytics
 
 ## Documentation
 
-Start here:
-- [MASTER_PROJECT_REPORT.md](MASTER_PROJECT_REPORT.md) (full technical master guide)
-- [Report/MASTER_PROJECT_REPORT.pdf](Report/MASTER_PROJECT_REPORT.pdf) (PDF version)
-- [PROJECT_FLOW.md](PROJECT_FLOW.md) (quick flow summary)
-- [backend/README.md](backend/README.md) (backend-specific notes)
-- [CONTINUE_CHAT.md](CONTINUE_CHAT.md) (cross-device continuation template)
+- [MASTER_PROJECT_REPORT.md](MASTER_PROJECT_REPORT.md) - full project report in simple language
+- [Report/MASTER_PROJECT_REPORT.pdf](Report/MASTER_PROJECT_REPORT.pdf) - PDF version of the report
+- [PROJECT_FLOW.md](PROJECT_FLOW.md) - step-by-step user flow
+- [backend/README.md](backend/README.md) - backend setup details
 
-## Core Features
+## What Is New
 
-### Role-based access (RBAC)
-- Child: check-in questionnaire, wellness activities, streak tracking
-- Parent: child management, risk insights, appointment booking
-- Doctor: appointment triage, future schedule, patient reports, password update
-- Admin: parent/doctor management, analytics dashboard
-
-### Assessment and risk flow
-- Child submits structured questionnaire responses
-- Backend computes average score and risk level
-- Parent sees recommendations and condition highlights
-- Alerts are generated for moderate/high concern levels
-
-### Appointment and consent workflow
-- Parent booking requires explicit data-sharing consent
-- Parent booking is temporarily withheld when child has an active appointment
-- Doctor can confirm, reject, postpone, or complete appointment
-- Slot availability is updated automatically based on status transitions
-
-### Doctor onboarding and security
-- Admin creates doctor account
-- Temporary password is auto-generated and emailed
-- First doctor login is forced to change password via popup modal
+- Doctor records now include clinic address
+- Doctor creation now requires clinic address
+- Booking email to doctor no longer contains approve/reject links
+- When doctor confirms or rejects, parent receives email reply
+- Confirmation email includes date, time, and clinic location
+- Parent analytics now use real saved assessment data
+- Sample weekly mood-only analytics were removed from parent view
+- Disease-wise admin analytics now update from stored assessment condition data
+- Questionnaire enforces answer-before-next and timer wait rules
+- First doctor login password modal now asks only:
+	- New password
+	- Retype new password
+- In-dashboard doctor password-change card is removed
 
 ## Tech Stack
 
@@ -59,11 +53,12 @@ Backend:
 ## Quick Start
 
 ### 1. Prerequisites
-- Node.js 18+ (Node 20+ recommended)
+- Node.js 18+
 - npm
 
 ### 2. Install dependencies
-Project root:
+
+Root:
 
 ```bash
 npm install
@@ -76,19 +71,20 @@ cd backend
 npm install
 ```
 
-### 3. Configure environment
-Create backend env file:
-- Copy backend/.env.example to backend/.env
+### 3. Configure backend environment
 
-Set at minimum:
+Create [backend/.env](backend/.env) from [backend/.env.example](backend/.env.example).
+
+Minimum values:
 - JWT_SECRET
 - EMAIL_USER
 - EMAIL_PASS
-- APP_URL (usually http://localhost:3000)
-- PORT (usually 4000)
+- APP_URL=http://localhost:3000
+- PORT=4000
 
-### 4. Run the app
-Terminal A (project root):
+### 4. Run app
+
+Terminal A (root):
 
 ```bash
 npm run dev
@@ -101,46 +97,31 @@ cd backend
 npm run dev
 ```
 
-Frontend:
-- http://localhost:3000
+URLs:
+- Frontend: http://localhost:3000
+- Backend: http://localhost:4000
+- Health: http://localhost:4000/health
 
-Backend:
-- http://localhost:4000
-
-Health endpoint:
-- http://localhost:4000/health
-
-## Build Commands
-
-Project root:
+## Build Frontend
 
 ```bash
 npm run build
 npm run preview
 ```
 
-## Repository Structure (High Level)
+## High-Level Flow
 
-- [src](src): frontend app source
-- [backend/src](backend/src): API routes, middleware, DB init/migrations
-- [backend/data](backend/data): SQLite DB files
-- [Report](Report): generated and document files
-- [MASTER_PROJECT_REPORT.md](MASTER_PROJECT_REPORT.md): master architecture and workflow guide
+1. Parent creates child account
+2. Child completes questionnaire
+3. Backend stores score, risk level, and condition summary
+4. Parent sees recommendations and books doctor with consent
+5. Doctor confirms or rejects in portal
+6. Parent receives status email update
+7. Admin sees updated aggregated analytics
 
-For detailed file-by-file explanation, use:
-- [MASTER_PROJECT_REPORT.md](MASTER_PROJECT_REPORT.md)
+## Important Notes
 
-## Current Workflow Summary
-
-1. Parent creates child account.
-2. Child signs in and submits questionnaire.
-3. Backend stores assessment and risk level.
-4. Parent views recommendations and, if needed, books doctor with consent.
-5. Doctor receives notification, signs in, and manages appointment status.
-6. Parent booking availability updates automatically based on appointment state.
-
-## Notes
-
-- This is a support and monitoring system, not a medical diagnosis engine.
-- Parent consent is enforced before doctor sees child assessment data.
-- Keep .env and database artifacts out of public sharing.
+- This is a support tool, not a medical diagnosis tool.
+- Doctor only sees child assessment history when parent gives consent.
+- Do not commit local secrets from [backend/.env](backend/.env).
+- Runtime artifacts such as `.db-wal`, `.db-shm`, and Vite cache should not be committed.

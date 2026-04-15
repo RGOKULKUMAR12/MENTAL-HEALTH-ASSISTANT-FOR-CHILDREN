@@ -1,116 +1,112 @@
-# Mindful Kids – Project Flow & User Responsibilities
+# Mindful Kids - Project Flow
 
-## How to Run the Project
+This document explains the full app flow in simple steps.
 
-### Prerequisites
+## 1. Start the Project
 
-- **Node.js** (v18 or higher)
-- **npm** (comes with Node.js)
+Prerequisites:
+- Node.js 18+
+- npm
 
-### Steps
+Run frontend (root):
 
-1. **Navigate to the project folder**
-   ```
-   cd c:\Users\user.DESKTOP-O8HT4H1\Desktop\MENTAL-PRO
-   ```
+```bash
+npm install
+npm run dev
+```
 
-2. **Install dependencies**
-   ```
-   npm install
-   ```
+Run backend:
 
-3. **Start the development server**
-   ```
-   npm run dev
-   ```
+```bash
+cd backend
+npm install
+npm run dev
+```
 
-4. **Open in browser**
-   - Go to: `http://localhost:3000`
-   - On first load you will see the Login page
+Open:
+- Frontend: http://localhost:3000
+- Backend: http://localhost:4000
 
-5. **Build for production** (optional)
-   ```
-   npm run build
-   npm run preview
-   ```
+## 2. Users and Their Job
 
----
+- Child: complete check-ins and wellness activities
+- Parent: manage children, view insights, book appointments
+- Doctor: manage appointment decisions and review consented history
+- Admin: manage accounts and monitor analytics
 
-## Project Flow – How It Works
+## 3. Parent and Child Flow
 
-### 1. Parent flow (first)
+1. Parent registers and logs in
+2. Parent creates child account (name, user id, password)
+3. Child logs in with user id and password
+4. Child answers questionnaire section by section
+5. Each question is mandatory before moving to next
+6. Timer check is enforced before next action
+7. Submission stores score, risk level, and condition summary
+8. Parent dashboard updates with real saved data
 
-1. Parent registers at **Sign up** (name, email, password)
-2. Parent logs in with email + password
-3. Parent goes to **My Children** → **Create child account**
-4. Parent creates child with: **Name**, **User ID**, **Password**
-5. Parent shares User ID and password with the child
+## 4. Risk Logic (Simple)
 
-### 2. Child flow
+Average score mapping:
+- 3.5 to 5.0 = Low risk
+- 2.0 to 3.4 = Moderate risk
+- 1.0 to 1.9 = High risk
 
-1. Child logs in with **User ID** and **password** (created by parent)
-2. Child enters child portal:
-   - **My Space** – Welcome and quick links
-   - **Check-in** – Grouped questionnaire (separate cards)
-   - **Wellness** – Breathing, mindfulness, streak score
+## 5. Parent Appointment Booking Flow
 
-### 3. Check-in (child)
+1. Parent opens booking for a child
+2. Parent selects doctor and time slot
+3. Parent must enable data-sharing consent
+4. System checks child has no active appointment lock
+5. Booking is created with status `booked`
+6. Slot becomes unavailable
+7. Doctor receives booking email (no action links)
 
-- Questions grouped by **separate cards**: Emotional, Behavioral, Cognitive, Social
-- Click a card to expand and answer questions for that group
-- Likert scale 1–5 (emoji buttons)
-- Submit → score and risk level calculated → results sent to parent dashboard
+## 6. Doctor Flow
 
-### 4. Wellness (child)
+1. Admin creates doctor with temporary password + clinic address
+2. Doctor logs in first time
+3. Doctor sees required password modal
+4. Modal asks only:
+   - New password
+   - Retype new password
+5. Doctor enters portal and reviews bookings
+6. Doctor can set status:
+   - confirmed
+   - rejected
+   - postponed
+   - completed
 
-- **Streak score** – Daily login streak (visiting Wellness counts)
-- Breathing exercise (balloon breath)
-- 5-4-3-2-1 grounding
-- Positive habit reminders
+## 7. Appointment Status and Email Rules
 
-### 5. Parent dashboard
+- Confirmed:
+  - Parent gets reply email with date, time, and clinic location
+  - Slot remains occupied
 
-- List of children (parent-created accounts)
-- Assessment results and risk level per child
-- Risk-based recommendations:
-  - **Low:** Keep up wellness
-  - **Moderate:** Suggest wellness exercises
-  - **High:** Appointment booking form
+- Rejected:
+  - Parent gets reply email about rejection
+  - Slot is released
 
-### 6. Admin flow
+- Completed:
+  - Slot is released
 
-- Login with email + password (counselor/admin role)
-- Aggregated anonymized analytics (no individual child data)
+## 8. Parent Data Visibility Rule
 
----
+- Doctor can only view patient history if parent consent was enabled for booking.
 
-## Risk Scoring (no ML)
+## 9. Admin Flow
 
-- **Average score 3.5–5** → Low risk  
-- **Average score 2.0–3.4** → Moderate risk  
-- **Average score 1.0–1.9** → High risk  
+Admin can:
+- Create and manage doctors
+- Create/manage parent accounts
+- Review analytics dashboard
 
----
+Analytics now include:
+- Risk distribution
+- Appointment status distribution
+- Disease-wise breakdown from saved condition data
 
-## User Responsibilities
+## 10. Important Notes
 
-### Child
-
-- Log in with User ID and password
-- Complete check-ins (grouped by Emotional, Behavioral, Cognitive, Social)
-- Use wellness activities
-- Build daily streak by visiting Wellness
-
-### Parent
-
-- Register and log in
-- Create child accounts (name, User ID, password)
-- Share User ID and password securely
-- View child results and recommendations
-- Use appointment booking for high-risk children
-- Suggest wellness exercises for moderate-risk children
-
-### Admin / Counselor
-
-- View aggregated analytics (anonymized)
-- Monitor program-level trends
+- This system supports monitoring and early support, not medical diagnosis.
+- Runtime files like `.db-wal`, `.db-shm`, and Vite cache should not be committed.
