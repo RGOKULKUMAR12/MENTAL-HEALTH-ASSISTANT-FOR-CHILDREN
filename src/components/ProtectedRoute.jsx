@@ -16,7 +16,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
     // Redirect to role-appropriate dashboard
-    const dashboards = { child: '/dashboard/child', parent: '/dashboard/parent', admin: '/dashboard/admin' };
+    const dashboards = { child: '/dashboard/child', parent: '/dashboard/parent', admin: '/dashboard/admin', doctor: '/dashboard/doctor' };
     return <Navigate to={dashboards[user?.role] || '/dashboard/child'} replace />;
   }
 

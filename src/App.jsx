@@ -13,6 +13,7 @@ import Register from './pages/Register';
 import ChildDashboard from './pages/dashboards/ChildDashboard';
 import ParentDashboard from './pages/dashboards/ParentDashboard';
 import AdminDashboard from './pages/dashboards/AdminDashboard';
+import DoctorDashboard from './pages/dashboards/DoctorDashboard';
 import Questionnaire from './pages/Questionnaire';
 import Wellness from './pages/Wellness';
 import Reports from './pages/Reports';
@@ -26,7 +27,9 @@ function App() {
   const { isAuthenticated, user } = useAuth();
 
   const defaultDashboard = user?.role === 'parent' ? '/dashboard/parent' 
-    : user?.role === 'admin' ? '/dashboard/admin' : '/dashboard/child';
+    : user?.role === 'admin' ? '/dashboard/admin'
+    : user?.role === 'doctor' ? '/dashboard/doctor'
+    : '/dashboard/child';
 
   return (
     <Routes>
@@ -50,6 +53,11 @@ function App() {
         <Route path="/dashboard/admin" element={<AdminDashboard />} />
         <Route path="/dashboard/admin/parents" element={<AdminParentsManagement />} />
         <Route path="/dashboard/admin/doctors" element={<AdminDoctorsManagement />} />
+      </Route>
+
+      {/* Doctor routes */}
+      <Route element={<ProtectedLayout allowedRoles={['doctor']} />}>
+        <Route path="/dashboard/doctor" element={<DoctorDashboard />} />
       </Route>
 
       {/* Shared routes */}

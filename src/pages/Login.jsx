@@ -3,8 +3,8 @@
  */
 
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Users, Heart, Shield, Quote } from 'lucide-react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { Users, Heart, Shield, Quote, Stethoscope } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Login() {
@@ -15,6 +15,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,8 +23,10 @@ export default function Login() {
     setLoading(true);
     try {
       const user = await login(identifier, password, role);
-      const dashboards = { child: '/dashboard/child', parent: '/dashboard/parent', admin: '/dashboard/admin' };
-      navigate(dashboards[user.role]);
+      const dashboards = { child: '/dashboard/child', parent: '/dashboard/parent', admin: '/dashboard/admin', doctor: '/dashboard/doctor' };
+      const fromPath = location.state?.from?.pathname;
+      const fromSearch = location.state?.from?.search || '';
+      navigate(fromPath ? `${fromPath}${fromSearch}` : dashboards[user.role]);
     } catch (err) {
       setError(err?.message || 'Something went wrong. Please try again.');
     } finally {
@@ -34,6 +37,7 @@ export default function Login() {
   const roles = [
     { value: 'parent', label: "I'm a parent", icon: Users },
     { value: 'child', label: "I'm a kid", icon: Heart },
+    { value: 'doctor', label: "I'm a doctor", icon: Stethoscope },
     { value: 'admin', label: "I'm an admin", icon: Shield },
   ];
 

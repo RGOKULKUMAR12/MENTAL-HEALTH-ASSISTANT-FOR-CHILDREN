@@ -50,12 +50,10 @@ export function recordDailyVisit(userId) {
 
 export function getStreak(userId) {
   const key = `${STORAGE_KEY}-${userId || 'default'}`;
-  const today = getTodayKey();
   try {
     const stored = localStorage.getItem(key);
     if (!stored) return 0;
     const { lastDate, streak } = JSON.parse(stored);
-    if (lastDate !== today) return 0;
     return streak;
   } catch {
     return 0;

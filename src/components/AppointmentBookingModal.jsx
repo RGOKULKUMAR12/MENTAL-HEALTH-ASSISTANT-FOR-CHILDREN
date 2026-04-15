@@ -7,13 +7,14 @@ import { useState, useEffect } from 'react';
 import { X, Calendar, Clock, User, FileText, CheckCircle } from 'lucide-react';
 import { api } from '../api/api';
 
-export default function AppointmentBookingModal({ isOpen, onClose, parentId, childId, childName }) {
+export default function AppointmentBookingModal({ isOpen, onClose, onBooked, parentId, childId, childName }) {
   const [stage, setStage] = useState('doctors'); // 'doctors' | 'slots' | 'confirm' | 'success'
   const [doctors, setDoctors] = useState([]);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [slots, setSlots] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [reason, setReason] = useState('');
+  const [shareDataConsent, setShareDataConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [appointmentId, setAppointmentId] = useState(null);
@@ -73,6 +74,11 @@ export default function AppointmentBookingModal({ isOpen, onClose, parentId, chi
       return;
     }
 
+    if (!shareDataConsent) {
+      setError('Please allow sharing the child assessment data with the doctor.');
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await api.post('/appointments/book', {
@@ -81,11 +87,13 @@ export default function AppointmentBookingModal({ isOpen, onClose, parentId, chi
         doctorId: selectedDoctor.id,
         timeSlotId: selectedSlot.id,
         reason,
+        shareDataConsent,
       });
 
       setAppointmentId(response.id || response.data?.id);
       setStage('success');
       setError('');
+      if (onBooked) onBooked();
     } catch (err) {
       setError('Failed to book appointment. Please try again.');
       console.error(err);
@@ -269,6 +277,18 @@ export default function AppointmentBookingModal({ isOpen, onClose, parentId, chi
                 />
               </div>
 
+              <label className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={shareDataConsent}
+                  onChange={(e) => setShareDataConsent(e.target.checked)}
+                  className="mt-1 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-sm text-gray-700">
+                  I agree to share the child's assessment history and relevant data with the selected doctor for this appointment.
+                </span>
+              </label>
+
               {/* Buttons */}
               <div className="flex gap-3">
                 <button
@@ -292,9 +312,9 @@ export default function AppointmentBookingModal({ isOpen, onClose, parentId, chi
           {stage === 'success' && appointmentId && (
             <div className="text-center space-y-4 py-6">
               <div className="text-6xl mb-4">✅</div>
-              <h3 className="text-2xl font-bold text-green-600">Appointment Booked!</h3>
+              <h3 className="text-2xl font-bold text-green-600">Appointment Request Sent!</h3>
               <p className="text-gray-600">
-                Your appointment with <strong>{selectedDoctor.name}</strong> has been confirmed.
+                Your request with <strong>{selectedDoctor.name}</strong> has been sent for doctor approval.
               </p>
               <div className="bg-green-50 p-4 rounded-lg border border-green-200 text-left space-y-2">
                 <p className="text-sm text-gray-700">

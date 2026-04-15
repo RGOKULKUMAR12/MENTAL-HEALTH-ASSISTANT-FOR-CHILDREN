@@ -33,6 +33,37 @@ router.post('/login', async (req, res) => {
   }
 
   const normalizedIdentifier = identifier.trim().toLowerCase();
+
+  if (role === 'doctor') {
+    const doctor = db
+      .prepare('SELECT id, name, email, password_hash, must_change_password FROM doctors WHERE email = ? AND available = 1')
+      .get(normalizedIdentifier);
+
+    if (!doctor || !doctor.password_hash) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const validDoctorPassword = await bcrypt.compare(password, doctor.password_hash);
+    if (!validDoctorPassword) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const doctorAuthUser = { id: doctor.id, role: 'doctor', parent_id: null };
+    const token = signToken(doctorAuthUser);
+    return res.json({
+      token,
+      user: {
+        id: doctor.id,
+        role: 'doctor',
+        name: doctor.name,
+        email: doctor.email,
+        username: null,
+        parentId: null,
+        mustChangePassword: Number(doctor.must_change_password) === 1,
+      },
+    });
+  }
+
   let user;
   if (role === 'child') {
     user = db
@@ -63,6 +94,36 @@ router.post('/login', async (req, res) => {
     parentId: user.parent_id || null,
   };
   return res.json({ token, user: responseUser });
+});
+
+router.post('/change-password', requireAuth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body || {};
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'currentPassword and newPassword are required' });
+    }
+
+    if (req.user.role !== 'doctor') {
+      return res.status(403).json({ message: 'Doctor only' });
+    }
+
+    const doctor = db.prepare('SELECT id, password_hash FROM doctors WHERE id = ?').get(req.user.id);
+    if (!doctor || !doctor.password_hash) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+
+    const valid = await bcrypt.compare(currentPassword, doctor.password_hash);
+    if (!valid) {
+      return res.status(401).json({ message: 'Current password is incorrect' });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    db.prepare('UPDATE doctors SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(passwordHash, req.user.id);
+
+    return res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error changing password', error: error.message });
+  }
 });
 
 // Admin: Get all users by role

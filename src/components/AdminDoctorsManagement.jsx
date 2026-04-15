@@ -187,7 +187,7 @@ export default function AdminDoctorsManagement() {
         }
       }
 
-      alert('Doctor created successfully!');
+      alert('Doctor created successfully! A temporary password was emailed to the doctor.');
       setNewDoctorForm({ name: '', specialization: '', email: '', phone: '', bio: '' });
       setTimeSlots([]);
       setShowAddDoctorModal(false);

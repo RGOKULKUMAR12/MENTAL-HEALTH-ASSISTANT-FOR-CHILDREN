@@ -26,6 +26,9 @@ const navConfig = {
     { to: '/dashboard/admin/doctors', icon: Stethoscope, label: 'Doctors' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ],
+  doctor: [
+    { to: '/dashboard/doctor', icon: Stethoscope, label: 'Doctor Module' },
+  ],
 };
 
 export default function AppLayout({ children }) {

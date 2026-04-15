@@ -69,6 +69,8 @@ export function initDb() {
       name TEXT NOT NULL,
       specialization TEXT NOT NULL,
       email TEXT UNIQUE NOT NULL,
+      password_hash TEXT,
+      must_change_password INTEGER NOT NULL DEFAULT 0,
       phone TEXT,
       bio TEXT,
       available INTEGER DEFAULT 1,
@@ -93,6 +95,7 @@ export function initDb() {
       child_name TEXT,
       doctor_id INTEGER,
       time_slot_id INTEGER,
+      share_child_data INTEGER NOT NULL DEFAULT 0,
       reason TEXT,
       status TEXT NOT NULL DEFAULT 'booked',
       appointment_date TEXT,
@@ -144,6 +147,7 @@ export function initDb() {
     const hasDoctorConfirmedAt = appointmentColumns.some(col => col.name === 'doctor_confirmed_at');
     const hasStatusChangedAt = appointmentColumns.some(col => col.name === 'status_changed_at');
     const hasChildName = appointmentColumns.some(col => col.name === 'child_name');
+    const hasShareChildData = appointmentColumns.some(col => col.name === 'share_child_data');
 
     if (!hasDoctorConfirmedAt) {
       db.exec('ALTER TABLE appointments_updated ADD COLUMN doctor_confirmed_at TEXT');
@@ -160,6 +164,26 @@ export function initDb() {
       console.log('Added child_name column to appointments_updated table');
     }
 
+    if (!hasShareChildData) {
+      db.exec('ALTER TABLE appointments_updated ADD COLUMN share_child_data INTEGER NOT NULL DEFAULT 0');
+      console.log('Added share_child_data column to appointments_updated table');
+    }
+
+    const doctorColumns = db.prepare("PRAGMA table_info(doctors)").all();
+    const hasDoctorPasswordHash = doctorColumns.some(col => col.name === 'password_hash');
+    const hasDoctorMustChangePassword = doctorColumns.some(col => col.name === 'must_change_password');
+    if (!hasDoctorPasswordHash) {
+      db.exec('ALTER TABLE doctors ADD COLUMN password_hash TEXT');
+      console.log('Added password_hash column to doctors table');
+    }
+
+    if (!hasDoctorMustChangePassword) {
+      db.exec('ALTER TABLE doctors ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0');
+      console.log('Added must_change_password column to doctors table');
+    }
+
+    db.exec('UPDATE doctors SET must_change_password = 0 WHERE must_change_password IS NULL');
+
     const appointmentFkList = db.prepare("PRAGMA foreign_key_list(appointments_updated)").all();
     const childFk = appointmentFkList.find((fk) => fk.from === 'child_id');
     if (childFk && childFk.on_delete !== 'SET NULL') {
@@ -172,6 +196,7 @@ export function initDb() {
           child_name TEXT,
           doctor_id INTEGER,
           time_slot_id INTEGER,
+          share_child_data INTEGER NOT NULL DEFAULT 0,
           reason TEXT,
           status TEXT NOT NULL DEFAULT 'booked',
           appointment_date TEXT,
@@ -188,12 +213,12 @@ export function initDb() {
       `);
       db.exec(`
         INSERT INTO appointments_updated_new (
-          id, parent_id, child_id, child_name, doctor_id, time_slot_id, reason,
+          id, parent_id, child_id, child_name, doctor_id, time_slot_id, share_child_data, reason,
           status, appointment_date, appointment_time, doctor_confirmed_at,
           status_changed_at, created_at
         )
         SELECT
-          id, parent_id, child_id, child_name, doctor_id, time_slot_id, reason,
+          id, parent_id, child_id, child_name, doctor_id, time_slot_id, COALESCE(share_child_data, 0), reason,
           status, appointment_date, appointment_time, doctor_confirmed_at,
           status_changed_at, created_at
         FROM appointments_updated;

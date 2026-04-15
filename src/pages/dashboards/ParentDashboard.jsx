@@ -3,7 +3,7 @@
  * Risk-based recommendations, appointment booking for high risk
  */
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChildren } from '../../contexts/ChildrenContext';
@@ -22,9 +22,47 @@ export default function ParentDashboard() {
   const { getAllAssessments } = useAssessment();
   const [bookingOpen, setBookingOpen] = useState(false);
   const [selectedChild, setSelectedChild] = useState(null);
+  const [appointments, setAppointments] = useState([]);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(false);
   const parentId = user?.id;
   const children = getChildrenByParent(parentId);
   const assessments = getAllAssessments();
+
+  const fetchAppointments = async () => {
+    if (!parentId) return;
+    try {
+      setAppointmentsLoading(true);
+      const response = await fetch(`http://localhost:4000/api/appointments/parent/${parentId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('mental-pro-token') || ''}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAppointments(data.items || []);
+      }
+    } catch (error) {
+      console.error('Failed to load appointments:', error);
+    } finally {
+      setAppointmentsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAppointments();
+  }, [parentId]);
+
+  const appointmentsByChild = useMemo(() => {
+    return appointments.reduce((accumulator, appointment) => {
+      const key = String(appointment.childId);
+      if (!accumulator[key]) accumulator[key] = [];
+      accumulator[key].push(appointment);
+      return accumulator;
+    }, {});
+  }, [appointments]);
+
+  const hasActiveAppointment = (childId) => {
+    const childAppointments = appointmentsByChild[String(childId)] || [];
+    return childAppointments.some((appointment) => ['booked', 'confirmed', 'pending', 'postponed'].includes(appointment.status));
+  };
 
   const childrenWithResults = children.map((child) => {
     const assessment = assessments[child.id] || {
@@ -78,7 +116,8 @@ export default function ParentDashboard() {
           <div className="space-y-6">
             {childrenWithResults.map((child) => {
               const rec = child.recommendation || RECOMMENDATIONS[child.riskLevel || 'low'];
-              const showAppointment = rec?.showAppointment && child.riskLevel === 'high';
+              const showAppointment = rec?.showAppointment && child.riskLevel === 'high' && !hasActiveAppointment(child.id);
+              const activeAppointment = hasActiveAppointment(child.id);
 
               return (
                 <div key={child.id} className="p-4 rounded-xl bg-gray-50 space-y-4">
@@ -136,6 +175,12 @@ export default function ParentDashboard() {
                     </div>
                   )}
 
+                  {activeAppointment && !showAppointment && (
+                    <div className="mt-4 px-4 py-3 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm">
+                      You already have an active appointment for this child. Booking is available again after the doctor rejects or completes it.
+                    </div>
+                  )}
+
                   {showAppointment && (
                     <button
                       onClick={() => {
@@ -181,6 +226,7 @@ export default function ParentDashboard() {
             setBookingOpen(false);
             setSelectedChild(null);
           }}
+          onBooked={fetchAppointments}
           parentId={parentId || ''}
           childId={selectedChild.id || ''}
           childName={selectedChild.name || 'Child'}

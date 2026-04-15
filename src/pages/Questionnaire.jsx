@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAssessment } from '../contexts/AssessmentContext';
+import { api } from '../api/api';
 import { MOCK_QUESTIONNAIRE } from '../data/mockData';
 import { calculateRisk } from '../utils/riskAssessment';
 import { identifyConditions, generateParentReport } from '../utils/mentalIllnessIdentification';
@@ -26,7 +27,7 @@ export default function Questionnaire() {
   const [responses, setResponses] = useState({});
   const [completedSections, setCompletedSections] = useState(new Set());
   const [sectionProgress, setSectionProgress] = useState({}); // Track progress per section
-  const [answerTime, setAnswerTime] = useState(null); // Track when question was answered
+  const [answerTimes, setAnswerTimes] = useState({}); // Track when each question was answered
 
   const categories = MOCK_QUESTIONNAIRE.categories;
   const allQuestions = categories.flatMap((cat) => cat.questions);
@@ -38,23 +39,24 @@ export default function Questionnaire() {
   const totalQuestions = allQuestions.length;
   const progress = totalQuestions ? (answeredCount / totalQuestions) * 100 : 0;
 
-  // Timer for waiting 5 seconds after answer
+  // Timer for waiting 2 seconds after answer
   const [timerSeconds, setTimerSeconds] = useState(0);
   useEffect(() => {
-    if (!answerTime) {
+    const currentAnswerTime = currentQuestion ? answerTimes[currentQuestion.id] : null;
+    if (!currentAnswerTime) {
       setTimerSeconds(0);
       return;
     }
     const interval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - answerTime) / 1000);
-      const remaining = Math.max(0, 5 - elapsed);
+      const elapsed = Math.floor((Date.now() - currentAnswerTime) / 1000);
+      const remaining = Math.max(0, 2 - elapsed);
       setTimerSeconds(remaining);
       if (remaining <= 0) {
         clearInterval(interval);
       }
     }, 100);
     return () => clearInterval(interval);
-  }, [answerTime]);
+  }, [answerTimes, currentQuestion]);
 
   const isSectionComplete = (sectionIndex) => {
     const section = categories[sectionIndex];
@@ -70,31 +72,19 @@ export default function Questionnaire() {
   const goNextQuestion = () => {
     if (currentQuestionIndex < currentSection.questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setAnswerTime(null); // Reset timer for new question
     }
   };
 
   const goPrevQuestion = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
-      setAnswerTime(null); // Reset timer for new question
     }
   };
 
   const handleResponse = (qId, value) => {
     setResponses((prev) => ({ ...prev, [qId]: value }));
-    setAnswerTime(Date.now()); // Record answer time
+    setAnswerTimes((prev) => ({ ...prev, [qId]: Date.now() })); // Record answer time
     setSectionProgress((prev) => ({ ...prev, [activeSection]: currentQuestionIndex }));
-
-    if (currentQuestionIndex < currentSection.questions.length - 1) {
-      setTimeout(() => {
-        const nextIndex = currentQuestionIndex + 1;
-        setCurrentQuestionIndex(nextIndex);
-        setSectionProgress((prev) => ({ ...prev, [activeSection]: nextIndex }));
-      }, 300);
-    } else {
-      setCompletedSections((prev) => new Set(prev).add(activeSection));
-    }
   };
 
   const handleSectionBack = () => {
@@ -103,7 +93,7 @@ export default function Questionnaire() {
     setCurrentQuestionIndex(0);
   };
 
-  const handleFinalSubmit = () => {
+  const handleFinalSubmit = async () => {
     if (answeredCount !== totalQuestions) {
       alert('Please answer all questions before submitting.');
       return;
@@ -111,6 +101,12 @@ export default function Questionnaire() {
 
     const { avgScore, riskLevel } = calculateRisk(responses);
     const parentReport = generateParentReport(responses, allQuestions, riskLevel, avgScore);
+
+    try {
+      await api.submitAssessment(user?.id || 'child-1', { responses });
+    } catch (error) {
+      console.error('Failed to save assessment to backend:', error);
+    }
 
     saveAssessment(user?.id || 'child-1', {
       responses,
@@ -124,6 +120,8 @@ export default function Questionnaire() {
     // Children don't see results - redirect directly to dashboard
     navigate('/dashboard/child');
   };
+
+  const canProceedToNext = !responses[currentQuestion?.id] || !answerTimes[currentQuestion?.id] || Date.now() - answerTimes[currentQuestion?.id] >= 2000;
 
   if (stage === 'selection') {
     return (
@@ -259,10 +257,6 @@ export default function Questionnaire() {
     const sectionAnswered = currentSection.questions.filter((q) => responses[q.id] != null).length;
     const isLastQuestion = currentQuestionIndex === currentSection.questions.length - 1;
     const sectionProgressPercent = (sectionAnswered / currentSection.questions.length) * 100;
-    
-    // Check if 5 seconds have passed since answer
-    const canProceedToNext = !responses[currentQuestion.id] || 
-      (answerTime && Date.now() - answerTime >= 5000);
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 py-8">
@@ -383,7 +377,7 @@ export default function Questionnaire() {
                     disabled={!canProceedToNext}
                     className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all duration-300"
                   >
-                    Next
+                    Next{!canProceedToNext && timerSeconds > 0 ? ` (${timerSeconds}s)` : ''}
                     <ChevronRight className="w-4 h-4 inline ml-1" />
                   </button>
                 ) : (

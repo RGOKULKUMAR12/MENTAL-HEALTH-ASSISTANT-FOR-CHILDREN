@@ -47,6 +47,13 @@ export function AuthProvider({ children }) {
     setToken(null);
   }, []);
 
+  const updateUser = useCallback((patch) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      return { ...prev, ...patch };
+    });
+  }, []);
+
   const hasRole = useCallback((allowedRoles) => {
     if (!user) return false;
     return Array.isArray(allowedRoles) ? allowedRoles.includes(user.role) : user.role === allowedRoles;
@@ -57,6 +64,7 @@ export function AuthProvider({ children }) {
     login,
     register,
     logout,
+    updateUser,
     hasRole,
     isAuthenticated: !!user,
   };

@@ -3,6 +3,7 @@ import { db } from './db.js';
 
 export async function seedIfEmpty() {
   const usersCount = db.prepare('SELECT COUNT(*) AS count FROM users').get().count;
+  const sampleDoctorPasswordHash = await bcrypt.hash('doctor123', 10);
   const existingAdminByEmail = db.prepare('SELECT id FROM users WHERE role = ? AND email = ?').get('admin', 'admin@example.com');
   if (existingAdminByEmail) {
     db.prepare('UPDATE users SET name = ? WHERE id = ?').run('Dr. Gokul Kumar', existingAdminByEmail.id);
@@ -11,6 +12,14 @@ export async function seedIfEmpty() {
   const existingAdminByName = db.prepare('SELECT id FROM users WHERE role = ? AND name = ?').get('admin', 'Dr. Johnson');
   if (existingAdminByName) {
     db.prepare('UPDATE users SET name = ? WHERE id = ?').run('Dr. Gokul Kumar', existingAdminByName.id);
+  }
+
+  const doctorsWithoutPasswords = db.prepare("SELECT id FROM doctors WHERE password_hash IS NULL OR password_hash = ''").all();
+  if (doctorsWithoutPasswords.length > 0) {
+    const updateDoctorPassword = db.prepare('UPDATE doctors SET password_hash = ? WHERE id = ?');
+    for (const doctor of doctorsWithoutPasswords) {
+      updateDoctorPassword.run(sampleDoctorPasswordHash, doctor.id);
+    }
   }
 
   if (usersCount > 0) return;
@@ -51,12 +60,13 @@ export async function seedIfEmpty() {
 
   // Add sample doctors
   const doctor1 = db.prepare(`
-    INSERT INTO doctors (name, specialization, email, phone, bio, available)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO doctors (name, specialization, email, password_hash, phone, bio, available)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(
     'Dr. Emily Watson',
     'Child Psychologist',
     'emily.watson@clinic.com',
+    sampleDoctorPasswordHash,
     '+1-555-0101',
     'Specializes in anxiety and depression in children',
     1
@@ -64,12 +74,13 @@ export async function seedIfEmpty() {
   const doctor1Id = doctor1.lastInsertRowid;
 
   const doctor2 = db.prepare(`
-    INSERT INTO doctors (name, specialization, email, phone, bio, available)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO doctors (name, specialization, email, password_hash, phone, bio, available)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(
     'Dr. Michael Chen',
     'Child Psychiatrist',
     'michael.chen@clinic.com',
+    sampleDoctorPasswordHash,
     '+1-555-0102',
     'Expert in ADHD and behavioral disorders',
     1
@@ -77,12 +88,13 @@ export async function seedIfEmpty() {
   const doctor2Id = doctor2.lastInsertRowid;
 
   const doctor3 = db.prepare(`
-    INSERT INTO doctors (name, specialization, email, phone, bio, available)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO doctors (name, specialization, email, password_hash, phone, bio, available)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(
     'Dr. Sarah Martinez',
     'Child Counselor',
     'sarah.martinez@clinic.com',
+    sampleDoctorPasswordHash,
     '+1-555-0103',
     'Focuses on social skills and emotional development',
     1

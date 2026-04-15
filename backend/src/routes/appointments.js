@@ -25,11 +25,15 @@ transporter.verify((error, success) => {
 // Book appointment with doctor and time slot
 router.post('/book', requireAuth, (req, res) => {
   try {
-    const { parentId, childId, doctorId, timeSlotId, reason } = req.body;
+    const { parentId, childId, doctorId, timeSlotId, reason, shareDataConsent } = req.body;
     const userId = req.user.id;
 
     if (!parentId || !childId || !doctorId || !timeSlotId) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    if (shareDataConsent !== true) {
+      return res.status(400).json({ error: 'Consent is required to share child assessment data with the doctor' });
     }
 
     // Verify parent-child relationship
@@ -65,12 +69,16 @@ router.post('/book', requireAuth, (req, res) => {
 
     // Create appointment with "booked" status (awaiting doctor confirmation)
     const appointment = db.prepare(`
-      INSERT INTO appointments_updated (parent_id, child_id, child_name, doctor_id, time_slot_id, reason, appointment_date, appointment_time, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(parentId, childId, child.name, doctorId, timeSlotId, reason || null, timeSlot.date, timeSlot.time, 'booked');
+      INSERT INTO appointments_updated (parent_id, child_id, child_name, doctor_id, time_slot_id, share_child_data, reason, appointment_date, appointment_time, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(parentId, childId, child.name, doctorId, timeSlotId, 1, reason || null, timeSlot.date, timeSlot.time, 'booked');
 
     // Mark time slot as unavailable
     db.prepare('UPDATE time_slots SET available = 0 WHERE id = ?').run(timeSlotId);
+
+    const appBaseUrl = process.env.APP_URL || 'http://localhost:3000';
+    const confirmLink = `${appBaseUrl}/dashboard/doctor?appointmentId=${appointment.lastInsertRowid}&action=confirmed`;
+    const rejectLink = `${appBaseUrl}/dashboard/doctor?appointmentId=${appointment.lastInsertRowid}&action=rejected`;
 
     // Send email to doctor
     const mailOptions = {
@@ -87,8 +95,14 @@ router.post('/book', requireAuth, (req, res) => {
         <p><strong>Time:</strong> ${timeSlot.time}</p>
         <p><strong>Reason:</strong> ${reason || 'Not specified'}</p>
         <p><strong>Appointment ID:</strong> ${appointment.lastInsertRowid}</p>
+        <p><strong>Parent Consent:</strong> Granted to share child assessment history for this appointment</p>
         <hr>
         <p><strong>ACTION REQUIRED:</strong> Please confirm or decline this appointment request.</p>
+        <p>
+          <a href="${confirmLink}" style="display:inline-block; padding:10px 14px; background:#16a34a; color:white; text-decoration:none; border-radius:6px; margin-right:8px;">Confirm Appointment</a>
+          <a href="${rejectLink}" style="display:inline-block; padding:10px 14px; background:#dc2626; color:white; text-decoration:none; border-radius:6px;">Reject Appointment</a>
+        </p>
+        <p style="font-size:12px; color:#6b7280;">These links will open the doctor portal. Please log in with your doctor email and password created by admin.</p>
       `,
     };
 
@@ -113,6 +127,7 @@ router.post('/book', requireAuth, (req, res) => {
       appointmentDate: timeSlot.date,
       appointmentTime: timeSlot.time,
       reason: reason || null,
+      shareDataConsent: true,
       status: 'booked',
       createdAt: new Date().toISOString(),
     });
@@ -197,6 +212,107 @@ router.get('/admin/all', requireAuth, (req, res) => {
   }
 });
 
+// Get appointments for logged-in doctor
+router.get('/doctor/me', requireAuth, (req, res) => {
+  try {
+    if (req.user.role !== 'doctor' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const doctorId = req.user.role === 'doctor' ? req.user.id : Number(req.query.doctorId);
+    if (!doctorId) {
+      return res.status(400).json({ error: 'doctorId is required for admin requests' });
+    }
+
+    const appointments = db.prepare(`
+      SELECT a.*, COALESCE(c.name, a.child_name, 'Deleted child') as child_name,
+             p.name as parent_name, p.email as parent_email
+      FROM appointments_updated a
+      LEFT JOIN users c ON c.id = a.child_id
+      JOIN users p ON p.id = a.parent_id
+      WHERE a.doctor_id = ?
+      ORDER BY a.appointment_date DESC, a.appointment_time DESC
+    `).all(doctorId);
+
+    res.json({
+      items: appointments.map((apt) => ({
+        id: apt.id,
+        childId: apt.child_id,
+        childName: apt.child_name,
+        parentId: apt.parent_id,
+        parentName: apt.parent_name,
+        parentEmail: apt.parent_email,
+        appointmentDate: apt.appointment_date,
+        appointmentTime: apt.appointment_time,
+        reason: apt.reason,
+        shareDataConsent: Number(apt.share_child_data) === 1,
+        status: apt.status,
+        createdAt: apt.created_at,
+      })),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get doctor patients and their assessment history (only where parent gave consent)
+router.get('/doctor/patients', requireAuth, (req, res) => {
+  try {
+    if (req.user.role !== 'doctor' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const doctorId = req.user.role === 'doctor' ? req.user.id : Number(req.query.doctorId);
+    if (!doctorId) {
+      return res.status(400).json({ error: 'doctorId is required for admin requests' });
+    }
+
+    const patients = db.prepare(`
+      SELECT DISTINCT
+        c.id as child_id,
+        COALESCE(c.name, a.child_name, 'Deleted child') as child_name,
+        p.name as parent_name,
+        p.email as parent_email
+      FROM appointments_updated a
+      LEFT JOIN users c ON c.id = a.child_id
+      JOIN users p ON p.id = a.parent_id
+      WHERE a.doctor_id = ?
+        AND a.share_child_data = 1
+        AND a.child_id IS NOT NULL
+      ORDER BY child_name ASC
+    `).all(doctorId);
+
+    const items = patients.map((patient) => {
+      const assessments = db.prepare(`
+        SELECT id, avg_score, risk_level, identified_conditions, recommendation_json, responses_json, created_at
+        FROM assessments
+        WHERE child_id = ?
+        ORDER BY created_at DESC
+      `).all(patient.child_id);
+
+      return {
+        childId: patient.child_id,
+        childName: patient.child_name,
+        parentName: patient.parent_name,
+        parentEmail: patient.parent_email,
+        assessments: assessments.map((a) => ({
+          id: a.id,
+          avgScore: a.avg_score,
+          riskLevel: a.risk_level,
+          identifiedConditions: a.identified_conditions ? JSON.parse(a.identified_conditions) : [],
+          recommendation: a.recommendation_json ? JSON.parse(a.recommendation_json) : null,
+          responses: a.responses_json ? JSON.parse(a.responses_json) : {},
+          createdAt: a.created_at,
+        })),
+      };
+    });
+
+    res.json({ items });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Cancel appointment
 router.delete('/:appointmentId', requireAuth, (req, res) => {
   try {
@@ -228,9 +344,9 @@ router.put('/:appointmentId/confirm', requireAuth, (req, res) => {
     const { appointmentId } = req.params;
     const { status, reason } = req.body;
 
-    const validStatuses = ['confirmed', 'rejected', 'postponed'];
+    const validStatuses = ['confirmed', 'rejected', 'postponed', 'completed'];
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({ error: 'Invalid status. Must be: confirmed, rejected, or postponed' });
+      return res.status(400).json({ error: 'Invalid status. Must be: confirmed, rejected, postponed, or completed' });
     }
 
     const appointment = db.prepare('SELECT * FROM appointments_updated WHERE id = ?').get(appointmentId);
@@ -239,7 +355,11 @@ router.put('/:appointmentId/confirm', requireAuth, (req, res) => {
     }
 
     // Verify doctor has permission (must be the assigned doctor)
-    if (req.user.role !== 'admin' && Number(appointment.doctor_id) !== Number(req.user.id)) {
+    if (!['admin', 'doctor'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Unauthorized - Doctor or admin access only' });
+    }
+
+    if (req.user.role === 'doctor' && Number(appointment.doctor_id) !== Number(req.user.id)) {
       return res.status(403).json({ error: 'Unauthorized - You are not assigned to this appointment' });
     }
 
@@ -267,6 +387,13 @@ router.put('/:appointmentId/confirm', requireAuth, (req, res) => {
         WHERE id = ?
       `).run(status, appointmentId);
     } else if (status === 'postponed') {
+      db.prepare(`
+        UPDATE appointments_updated 
+        SET status = ?, status_changed_at = datetime('now')
+        WHERE id = ?
+      `).run(status, appointmentId);
+    } else if (status === 'completed') {
+      db.prepare('UPDATE time_slots SET available = 1 WHERE id = ?').run(appointment.time_slot_id);
       db.prepare(`
         UPDATE appointments_updated 
         SET status = ?, status_changed_at = datetime('now')

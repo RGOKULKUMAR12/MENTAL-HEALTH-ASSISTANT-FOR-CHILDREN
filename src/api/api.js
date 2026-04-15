@@ -124,6 +124,30 @@ export const api = {
     return request(`/appointments/parent/${parentId}`);
   },
 
+  async getDoctorAppointments(doctorId = null) {
+    const query = doctorId ? `?doctorId=${doctorId}` : '';
+    return request(`/appointments/doctor/me${query}`);
+  },
+
+  async getDoctorPatients(doctorId = null) {
+    const query = doctorId ? `?doctorId=${doctorId}` : '';
+    return request(`/appointments/doctor/patients${query}`);
+  },
+
+  async updateAppointmentStatus(appointmentId, status, reason = '') {
+    return request(`/appointments/${appointmentId}/confirm`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, reason }),
+    });
+  },
+
+  async changeDoctorPassword(currentPassword, newPassword) {
+    return request('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
+
   // Alerts
   async getAlerts(parentId) {
     return request(`/alerts?parentId=${parentId}`);
