@@ -1,6 +1,7 @@
 import express from 'express';
 import { db } from '../db.js';
 import { calculateRisk } from '../utils/risk.js';
+import { inferConditionsFromResponses } from '../utils/conditionDetection.js';
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ function canAccessChild(reqUser, childRow) {
 
 router.post('/children/:childId/assessments', (req, res) => {
   const { childId } = req.params;
-  const { responses } = req.body || {};
+  const { responses, identifiedConditions, conditionsJson } = req.body || {};
 
   const child = db
     .prepare('SELECT id, parent_id FROM users WHERE id = ? AND role = ?')
@@ -30,10 +31,15 @@ router.post('/children/:childId/assessments', (req, res) => {
   }
 
   const { riskLevel, avgScore, recommendation } = calculateRisk(responses);
+  const inferredConditions = Array.isArray(identifiedConditions)
+    ? identifiedConditions
+    : Array.isArray(conditionsJson)
+      ? conditionsJson
+      : inferConditionsFromResponses(responses);
   const info = db
     .prepare(`
-      INSERT INTO assessments (child_id, responses_json, avg_score, risk_level, recommendation_json)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO assessments (child_id, responses_json, avg_score, risk_level, recommendation_json, identified_conditions, conditions_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `)
     .run(
       childId,
@@ -41,6 +47,8 @@ router.post('/children/:childId/assessments', (req, res) => {
       avgScore,
       riskLevel,
       JSON.stringify(recommendation),
+      JSON.stringify(inferredConditions),
+      JSON.stringify(inferredConditions),
     );
 
   if (riskLevel !== 'low') {

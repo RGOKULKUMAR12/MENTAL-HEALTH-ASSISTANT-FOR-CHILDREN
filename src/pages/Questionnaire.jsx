@@ -103,7 +103,10 @@ export default function Questionnaire() {
     const parentReport = generateParentReport(responses, allQuestions, riskLevel, avgScore);
 
     try {
-      await api.submitAssessment(user?.id || 'child-1', { responses });
+      await api.submitAssessment(user?.id || 'child-1', {
+        responses,
+        identifiedConditions: parentReport.identifiedConditions,
+      });
     } catch (error) {
       console.error('Failed to save assessment to backend:', error);
     }
@@ -121,7 +124,9 @@ export default function Questionnaire() {
     navigate('/dashboard/child');
   };
 
-  const canProceedToNext = !responses[currentQuestion?.id] || !answerTimes[currentQuestion?.id] || Date.now() - answerTimes[currentQuestion?.id] >= 2000;
+  const currentResponse = currentQuestion ? responses[currentQuestion.id] : null;
+  const answerTimestamp = currentQuestion ? answerTimes[currentQuestion.id] : null;
+  const canProceedToNext = currentResponse != null && answerTimestamp && Date.now() - answerTimestamp >= 2000;
 
   if (stage === 'selection') {
     return (
@@ -386,10 +391,11 @@ export default function Questionnaire() {
                       setCompletedSections((prev) => new Set(prev).add(activeSection));
                       handleSectionBack();
                     }}
+                    disabled={!canProceedToNext}
                     className="px-6 py-2 rounded-xl bg-gradient-to-r from-green-500 to-blue-600 text-white font-medium hover:shadow-lg transition-all duration-300"
                   >
                     <Check className="w-4 h-4 inline mr-1" />
-                    Finish Section
+                    {canProceedToNext ? 'Finish Section' : `Wait ${timerSeconds}s`}
                   </button>
                 )}
               </div>

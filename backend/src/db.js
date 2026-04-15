@@ -69,6 +69,7 @@ export function initDb() {
       name TEXT NOT NULL,
       specialization TEXT NOT NULL,
       email TEXT UNIQUE NOT NULL,
+      clinic_address TEXT,
       password_hash TEXT,
       must_change_password INTEGER NOT NULL DEFAULT 0,
       phone TEXT,
@@ -170,8 +171,13 @@ export function initDb() {
     }
 
     const doctorColumns = db.prepare("PRAGMA table_info(doctors)").all();
+    const hasDoctorClinicAddress = doctorColumns.some(col => col.name === 'clinic_address');
     const hasDoctorPasswordHash = doctorColumns.some(col => col.name === 'password_hash');
     const hasDoctorMustChangePassword = doctorColumns.some(col => col.name === 'must_change_password');
+    if (!hasDoctorClinicAddress) {
+      db.exec('ALTER TABLE doctors ADD COLUMN clinic_address TEXT');
+      console.log('Added clinic_address column to doctors table');
+    }
     if (!hasDoctorPasswordHash) {
       db.exec('ALTER TABLE doctors ADD COLUMN password_hash TEXT');
       console.log('Added password_hash column to doctors table');

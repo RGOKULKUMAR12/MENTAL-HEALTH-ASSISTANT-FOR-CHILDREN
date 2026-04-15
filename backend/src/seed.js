@@ -4,6 +4,11 @@ import { db } from './db.js';
 export async function seedIfEmpty() {
   const usersCount = db.prepare('SELECT COUNT(*) AS count FROM users').get().count;
   const sampleDoctorPasswordHash = await bcrypt.hash('doctor123', 10);
+  const sampleClinicAddresses = [
+    '12, Apollo Bunder, Colaba, Mumbai, Maharashtra 400001',
+    '24, Anna Salai, T. Nagar, Chennai, Tamil Nadu 600017',
+    '18, Sector 62, Noida, Uttar Pradesh 201309',
+  ];
   const existingAdminByEmail = db.prepare('SELECT id FROM users WHERE role = ? AND email = ?').get('admin', 'admin@example.com');
   if (existingAdminByEmail) {
     db.prepare('UPDATE users SET name = ? WHERE id = ?').run('Dr. Gokul Kumar', existingAdminByEmail.id);
@@ -20,6 +25,14 @@ export async function seedIfEmpty() {
     for (const doctor of doctorsWithoutPasswords) {
       updateDoctorPassword.run(sampleDoctorPasswordHash, doctor.id);
     }
+  }
+
+  const doctorsWithoutAddresses = db.prepare("SELECT id FROM doctors WHERE clinic_address IS NULL OR clinic_address = ''").all();
+  if (doctorsWithoutAddresses.length > 0) {
+    const updateDoctorAddress = db.prepare('UPDATE doctors SET clinic_address = ? WHERE id = ?');
+    doctorsWithoutAddresses.forEach((doctor, index) => {
+      updateDoctorAddress.run(sampleClinicAddresses[index % sampleClinicAddresses.length], doctor.id);
+    });
   }
 
   if (usersCount > 0) return;
@@ -60,12 +73,13 @@ export async function seedIfEmpty() {
 
   // Add sample doctors
   const doctor1 = db.prepare(`
-    INSERT INTO doctors (name, specialization, email, password_hash, phone, bio, available)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO doctors (name, specialization, email, clinic_address, password_hash, phone, bio, available)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     'Dr. Emily Watson',
     'Child Psychologist',
     'emily.watson@clinic.com',
+    sampleClinicAddresses[0],
     sampleDoctorPasswordHash,
     '+1-555-0101',
     'Specializes in anxiety and depression in children',
@@ -74,12 +88,13 @@ export async function seedIfEmpty() {
   const doctor1Id = doctor1.lastInsertRowid;
 
   const doctor2 = db.prepare(`
-    INSERT INTO doctors (name, specialization, email, password_hash, phone, bio, available)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO doctors (name, specialization, email, clinic_address, password_hash, phone, bio, available)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     'Dr. Michael Chen',
     'Child Psychiatrist',
     'michael.chen@clinic.com',
+    sampleClinicAddresses[1],
     sampleDoctorPasswordHash,
     '+1-555-0102',
     'Expert in ADHD and behavioral disorders',
@@ -88,12 +103,13 @@ export async function seedIfEmpty() {
   const doctor2Id = doctor2.lastInsertRowid;
 
   const doctor3 = db.prepare(`
-    INSERT INTO doctors (name, specialization, email, password_hash, phone, bio, available)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO doctors (name, specialization, email, clinic_address, password_hash, phone, bio, available)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     'Dr. Sarah Martinez',
     'Child Counselor',
     'sarah.martinez@clinic.com',
+    sampleClinicAddresses[2],
     sampleDoctorPasswordHash,
     '+1-555-0103',
     'Focuses on social skills and emotional development',

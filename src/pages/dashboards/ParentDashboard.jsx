@@ -11,10 +11,9 @@ import { useAssessment } from '../../contexts/AssessmentContext';
 import Card from '../../components/ui/Card';
 import RiskBadge from '../../components/ui/RiskBadge';
 import AppointmentBookingModal from '../../components/AppointmentBookingModal';
-import { MOCK_MOOD_TREND } from '../../data/mockData';
 import { RECOMMENDATIONS } from '../../utils/riskAssessment';
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
-import { Users, Calendar } from 'lucide-react';
+import { PieChart, Pie, Cell, Legend, ResponsiveContainer } from 'recharts';
+import { Users, Calendar, Activity, BarChart3, Clock3 } from 'lucide-react';
 
 export default function ParentDashboard() {
   const { user } = useAuth();
@@ -78,6 +77,23 @@ export default function ParentDashboard() {
     };
   });
 
+  const assessedChildren = childrenWithResults.filter((child) => child.date);
+
+  const averageScore = assessedChildren.length
+    ? assessedChildren.reduce((sum, child) => sum + (Number(child.avgScore) || 0), 0) / assessedChildren.length
+    : 0;
+  const riskBreakdown = [
+    { key: 'low', label: 'Low', color: '#22c55e' },
+    { key: 'moderate', label: 'Moderate', color: '#f59e0b' },
+    { key: 'high', label: 'High', color: '#ef4444' },
+  ].map((entry) => ({
+    ...entry,
+    count: assessedChildren.filter((child) => child.riskLevel === entry.key).length,
+  })).filter((entry) => entry.count > 0);
+
+  const activeAppointmentsCount = appointments.filter((appointment) => ['booked', 'confirmed', 'pending', 'postponed'].includes(appointment.status)).length;
+  const confirmedAppointmentsCount = appointments.filter((appointment) => appointment.status === 'confirmed').length;
+
   return (
     <div className="space-y-6 max-w-6xl">
       <header>
@@ -86,7 +102,7 @@ export default function ParentDashboard() {
       </header>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <Card>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-soft-sky/50 flex items-center justify-center">
@@ -95,6 +111,39 @@ export default function ParentDashboard() {
             <div>
               <p className="text-sm text-gray-500">Children</p>
               <p className="text-xl font-bold text-gray-800">{loading ? '...' : children.length}</p>
+            </div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center">
+              <Activity className="w-6 h-6 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Average score</p>
+              <p className="text-xl font-bold text-gray-800">{assessedChildren.length ? `${averageScore.toFixed(1)}/5` : 'No data'}</p>
+            </div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center">
+              <Clock3 className="w-6 h-6 text-orange-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Active appointments</p>
+              <p className="text-xl font-bold text-gray-800">{appointmentsLoading ? '...' : activeAppointmentsCount}</p>
+            </div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
+              <BarChart3 className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Confirmed visits</p>
+              <p className="text-xl font-bold text-gray-800">{confirmedAppointmentsCount}</p>
             </div>
           </div>
         </Card>
@@ -203,16 +252,19 @@ export default function ParentDashboard() {
         </Link>
       </Card>
 
-      {childrenWithResults.length > 0 && (
+      {assessedChildren.length > 0 && (
         <Card>
-          <h2 className="text-lg font-bold text-gray-800 mb-4">Weekly mood trend (sample)</h2>
-          <div className="h-48">
+          <h2 className="text-lg font-bold text-gray-800 mb-4">Current risk distribution</h2>
+          <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={MOCK_MOOD_TREND}>
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                <YAxis domain={[1, 5]} tick={{ fontSize: 12 }} />
-                <Line type="monotone" dataKey="mood" stroke="#22c55e" strokeWidth={2} dot={{ r: 4 }} />
-              </LineChart>
+              <PieChart>
+                <Pie data={riskBreakdown} dataKey="count" nameKey="label" cx="50%" cy="50%" outerRadius={90} label>
+                  {riskBreakdown.map((entry) => (
+                    <Cell key={entry.key} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Legend />
+              </PieChart>
             </ResponsiveContainer>
           </div>
         </Card>

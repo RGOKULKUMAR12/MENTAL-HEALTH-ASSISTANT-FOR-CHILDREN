@@ -27,7 +27,7 @@ const emailTransporter = nodemailer.createTransport({
 router.get('/doctors', (req, res) => {
   try {
     const doctors = db.prepare(`
-      SELECT d.id, d.name, d.specialization, d.email, d.phone, d.bio, d.available, d.created_at,
+      SELECT d.id, d.name, d.specialization, d.email, d.clinic_address, d.phone, d.bio, d.available, d.created_at,
         (SELECT COUNT(*) FROM time_slots WHERE doctor_id = d.id AND available = 1) as available_slots
       FROM doctors d
       WHERE d.available = 1
@@ -43,7 +43,7 @@ router.get('/doctors', (req, res) => {
 router.get('/doctors/:doctorId/slots', (req, res) => {
   try {
     const { doctorId } = req.params;
-    const doctor = db.prepare('SELECT id, name, specialization, email, phone, bio, available, created_at FROM doctors WHERE id = ?').get(doctorId);
+    const doctor = db.prepare('SELECT id, name, specialization, email, clinic_address, phone, bio, available, created_at FROM doctors WHERE id = ?').get(doctorId);
     if (!doctor) return res.status(404).json({ error: 'Doctor not found' });
 
     const slots = db.prepare(`
@@ -80,8 +80,8 @@ router.post('/doctors', requireAuth, (req, res) => {
     const { role } = req.user;
     if (role !== 'admin') return res.status(403).json({ error: 'Unauthorized' });
 
-    const { name, specialization, email, phone, bio } = req.body;
-    if (!name || !specialization || !email) {
+    const { name, specialization, email, clinicAddress, phone, bio } = req.body;
+    if (!name || !specialization || !email || !clinicAddress) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -90,9 +90,9 @@ router.post('/doctors', requireAuth, (req, res) => {
     const doctorEmail = email.trim().toLowerCase();
 
     const result = db.prepare(`
-      INSERT INTO doctors (name, specialization, email, password_hash, must_change_password, phone, bio, available)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(name, specialization, doctorEmail, passwordHash, 1, phone || null, bio || null, 1);
+      INSERT INTO doctors (name, specialization, email, clinic_address, password_hash, must_change_password, phone, bio, available)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(name, specialization, doctorEmail, clinicAddress.trim(), passwordHash, 1, phone || null, bio || null, 1);
 
     const appBaseUrl = process.env.APP_URL || 'http://localhost:3000';
     const mailOptions = {
@@ -119,6 +119,7 @@ router.post('/doctors', requireAuth, (req, res) => {
       name,
       specialization,
       email: doctorEmail,
+      clinicAddress: clinicAddress.trim(),
       phone,
       bio,
       available: 1,
@@ -136,19 +137,20 @@ router.put('/doctors/:doctorId', requireAuth, (req, res) => {
     if (role !== 'admin') return res.status(403).json({ error: 'Unauthorized' });
 
     const { doctorId } = req.params;
-    const { name, specialization, email, phone, bio, available } = req.body;
+    const { name, specialization, email, clinicAddress, phone, bio, available } = req.body;
 
     const doctor = db.prepare('SELECT * FROM doctors WHERE id = ?').get(doctorId);
     if (!doctor) return res.status(404).json({ error: 'Doctor not found' });
 
     db.prepare(`
       UPDATE doctors 
-      SET name = ?, specialization = ?, email = ?, phone = ?, bio = ?, available = ?
+      SET name = ?, specialization = ?, email = ?, clinic_address = ?, phone = ?, bio = ?, available = ?
       WHERE id = ?
     `).run(
       name || doctor.name,
       specialization || doctor.specialization,
       email || doctor.email,
+      clinicAddress !== undefined ? clinicAddress : doctor.clinic_address,
       phone !== undefined ? phone : doctor.phone,
       bio !== undefined ? bio : doctor.bio,
       available !== undefined ? available : doctor.available,

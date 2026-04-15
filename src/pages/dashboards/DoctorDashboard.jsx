@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../api/api';
 import Card from '../../components/ui/Card';
-import { Calendar, CheckCircle2, XCircle, Users, FileText, Clock, ShieldCheck, Filter, ArrowRight, Lock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calendar, CheckCircle2, XCircle, Users, FileText, Clock, ShieldCheck, Filter, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
 
 function isFutureAppointment(appointment) {
   if (!appointment?.appointmentDate || !appointment?.appointmentTime) return false;
@@ -39,12 +39,9 @@ export default function DoctorDashboard() {
   const [appointmentFilter, setAppointmentFilter] = useState('all');
   const [riskFilter, setRiskFilter] = useState('all');
   const [expandedPatientId, setExpandedPatientId] = useState(null);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [passwordMessage, setPasswordMessage] = useState('');
   const [showForcePasswordModal, setShowForcePasswordModal] = useState(false);
-  const [forceCurrentPassword, setForceCurrentPassword] = useState('');
   const [forceNewPassword, setForceNewPassword] = useState('');
+  const [forceRetypePassword, setForceRetypePassword] = useState('');
   const [forcePasswordError, setForcePasswordError] = useState('');
   const [forcePasswordLoading, setForcePasswordLoading] = useState(false);
 
@@ -139,31 +136,28 @@ export default function DoctorDashboard() {
     }
   };
 
-  const handlePasswordChange = async (e) => {
-    e.preventDefault();
-    setPasswordMessage('');
-    try {
-      await api.changeDoctorPassword(currentPassword, newPassword);
-      setPasswordMessage('Password updated successfully.');
-      setCurrentPassword('');
-      setNewPassword('');
-    } catch (err) {
-      setPasswordMessage(err?.message || 'Failed to update password');
-    }
-  };
-
   const handleForcedPasswordChange = async (e) => {
     e.preventDefault();
     setForcePasswordError('');
+
+    if (forceNewPassword.length < 6) {
+      setForcePasswordError('Password must be at least 6 characters.');
+      return;
+    }
+
+    if (forceNewPassword !== forceRetypePassword) {
+      setForcePasswordError('New password and retype password must match.');
+      return;
+    }
+
     setForcePasswordLoading(true);
 
     try {
-      await api.changeDoctorPassword(forceCurrentPassword, forceNewPassword);
+      await api.changeDoctorPassword('', forceNewPassword, { firstTime: true });
       updateUser({ mustChangePassword: false });
       setShowForcePasswordModal(false);
-      setForceCurrentPassword('');
       setForceNewPassword('');
-      setPasswordMessage('Password updated successfully.');
+      setForceRetypePassword('');
     } catch (err) {
       setForcePasswordError(err?.message || 'Failed to update password');
     } finally {
@@ -178,26 +172,27 @@ export default function DoctorDashboard() {
           <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 p-6">
             <h2 className="text-xl font-bold text-gray-900">Change Temporary Password</h2>
             <p className="text-sm text-gray-600 mt-2">
-              For security, you must update your temporary password before continuing.
+              For security, create a new password before continuing.
             </p>
 
             <form onSubmit={handleForcedPasswordChange} className="mt-5 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Temporary password</label>
-                <input
-                  type="password"
-                  value={forceCurrentPassword}
-                  onChange={(e) => setForceCurrentPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  required
-                />
-              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">New password</label>
                 <input
                   type="password"
                   value={forceNewPassword}
                   onChange={(e) => setForceNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  minLength={6}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Retype new password</label>
+                <input
+                  type="password"
+                  value={forceRetypePassword}
+                  onChange={(e) => setForceRetypePassword(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   minLength={6}
                   required
@@ -479,39 +474,6 @@ export default function DoctorDashboard() {
             ))}
           </div>
         )}
-      </Card>
-
-      <Card>
-        <div className="flex items-center gap-2 mb-4">
-          <Lock className="w-5 h-5 text-primary-600" />
-          <h2 className="text-lg font-bold text-gray-800">Change Password</h2>
-        </div>
-        <form onSubmit={handlePasswordChange} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Current password</label>
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">New password</label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              required
-            />
-          </div>
-          <button type="submit" className="px-4 py-2 rounded-lg bg-primary-600 text-white font-medium hover:bg-primary-700">
-            Update Password
-          </button>
-        </form>
-        {passwordMessage && <p className="mt-3 text-sm text-gray-700">{passwordMessage}</p>}
       </Card>
 
       <Card className="bg-blue-50 border border-blue-200">

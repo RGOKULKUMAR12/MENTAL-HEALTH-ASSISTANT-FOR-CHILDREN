@@ -141,10 +141,18 @@ export const api = {
     });
   },
 
-  async changeDoctorPassword(currentPassword, newPassword) {
+  async changeDoctorPassword(currentPassword, newPassword, options = {}) {
+    const payload = {
+      newPassword,
+      ...options,
+    };
+    if (currentPassword) {
+      payload.currentPassword = currentPassword;
+    }
+
     return request('/auth/change-password', {
       method: 'POST',
-      body: JSON.stringify({ currentPassword, newPassword }),
+      body: JSON.stringify(payload),
     });
   },
 

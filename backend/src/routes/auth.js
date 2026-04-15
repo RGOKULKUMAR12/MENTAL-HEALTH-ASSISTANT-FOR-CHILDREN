@@ -99,22 +99,34 @@ router.post('/login', async (req, res) => {
 router.post('/change-password', requireAuth, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body || {};
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ message: 'currentPassword and newPassword are required' });
+    if (!newPassword) {
+      return res.status(400).json({ message: 'newPassword is required' });
+    }
+
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({ message: 'New password must be at least 6 characters' });
     }
 
     if (req.user.role !== 'doctor') {
       return res.status(403).json({ message: 'Doctor only' });
     }
 
-    const doctor = db.prepare('SELECT id, password_hash FROM doctors WHERE id = ?').get(req.user.id);
+    const doctor = db.prepare('SELECT id, password_hash, must_change_password FROM doctors WHERE id = ?').get(req.user.id);
     if (!doctor || !doctor.password_hash) {
       return res.status(404).json({ message: 'Doctor not found' });
     }
 
-    const valid = await bcrypt.compare(currentPassword, doctor.password_hash);
-    if (!valid) {
-      return res.status(401).json({ message: 'Current password is incorrect' });
+    const isFirstTimePasswordSet = Number(doctor.must_change_password) === 1;
+
+    if (!isFirstTimePasswordSet) {
+      if (!currentPassword) {
+        return res.status(400).json({ message: 'currentPassword is required' });
+      }
+
+      const valid = await bcrypt.compare(currentPassword, doctor.password_hash);
+      if (!valid) {
+        return res.status(401).json({ message: 'Current password is incorrect' });
+      }
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 10);

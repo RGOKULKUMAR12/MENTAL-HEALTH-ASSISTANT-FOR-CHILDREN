@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Card from './ui/Card';
 import { useAuth } from '../contexts/AuthContext';
 import { getToken } from '../api/api';
-import { Stethoscope, Phone, Mail, Briefcase, Calendar, Clock, Trash2, Plus, ChevronDown, ChevronUp, User, X } from 'lucide-react';
+import { Stethoscope, Phone, Mail, MapPin, Briefcase, Calendar, Clock, Trash2, Plus, ChevronDown, ChevronUp, User, X } from 'lucide-react';
 
 export default function AdminDoctorsManagement() {
   const [doctors, setDoctors] = useState([]);
@@ -17,6 +17,7 @@ export default function AdminDoctorsManagement() {
     name: '',
     specialization: '',
     email: '',
+    clinicAddress: '',
     phone: '',
     bio: '',
   });
@@ -55,7 +56,7 @@ export default function AdminDoctorsManagement() {
       if (handleAuthError(doctorsRes.status)) return;
       if (doctorsRes.ok) {
         const doctorsData = await doctorsRes.json();
-        setDoctors(doctorsData);
+        setDoctors(Array.isArray(doctorsData) ? doctorsData : doctorsData.items || []);
       }
 
       // Fetch appointments
@@ -132,7 +133,7 @@ export default function AdminDoctorsManagement() {
 
   const handleAddDoctor = async (e) => {
     e.preventDefault();
-    if (!newDoctorForm.name || !newDoctorForm.specialization || !newDoctorForm.email || !newDoctorForm.phone) {
+    if (!newDoctorForm.name || !newDoctorForm.specialization || !newDoctorForm.email || !newDoctorForm.clinicAddress) {
       alert('Please fill all required fields');
       return;
     }
@@ -188,7 +189,7 @@ export default function AdminDoctorsManagement() {
       }
 
       alert('Doctor created successfully! A temporary password was emailed to the doctor.');
-      setNewDoctorForm({ name: '', specialization: '', email: '', phone: '', bio: '' });
+      setNewDoctorForm({ name: '', specialization: '', email: '', clinicAddress: '', phone: '', bio: '' });
       setTimeSlots([]);
       setShowAddDoctorModal(false);
       fetchData();
@@ -340,6 +341,18 @@ export default function AdminDoctorsManagement() {
                   onChange={(e) => setNewDoctorForm({ ...newDoctorForm, email: e.target.value })}
                   placeholder="doctor@example.com"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Clinic Address *</label>
+                <textarea
+                  value={newDoctorForm.clinicAddress}
+                  onChange={(e) => setNewDoctorForm({ ...newDoctorForm, clinicAddress: e.target.value })}
+                  placeholder="12, MG Road, Bengaluru, Karnataka 560001"
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  required
                 />
               </div>
 
@@ -614,6 +627,10 @@ export default function AdminDoctorsManagement() {
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Mail className="w-4 h-4" />
                       <span>{doctor.email}</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-sm text-gray-600">
+                      <MapPin className="w-4 h-4 mt-0.5" />
+                      <span>{doctor.clinicAddress || doctor.clinic_address || 'Clinic address not set'}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Phone className="w-4 h-4" />

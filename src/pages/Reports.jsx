@@ -4,15 +4,38 @@
  */
 
 import { useAuth } from '../contexts/AuthContext';
+import { useChildren } from '../contexts/ChildrenContext';
+import { useAssessment } from '../contexts/AssessmentContext';
 import Card from '../components/ui/Card';
 import RiskBadge from '../components/ui/RiskBadge';
-import { MOCK_MOOD_TREND, MOCK_RISK_TIMELINE, MOCK_AGGREGATE_ANALYTICS, MOCK_LINKED_CHILDREN } from '../data/mockData';
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { FileText, Download, Printer } from 'lucide-react';
 
 export default function Reports() {
   const { user } = useAuth();
+  const { getChildrenByParent } = useChildren();
+  const { getAllAssessments } = useAssessment();
   const isAdmin = user?.role === 'admin';
+  const children = getChildrenByParent(user?.id);
+  const assessments = getAllAssessments();
+  const childrenWithResults = children.map((child) => {
+    const assessment = assessments[child.id] || null;
+    return {
+      ...child,
+      riskLevel: assessment?.riskLevel || 'low',
+      avgScore: assessment?.avgScore ?? null,
+      date: assessment?.date || null,
+    };
+  });
+  const assessedChildren = childrenWithResults.filter((child) => child.date);
+  const averageScore = assessedChildren.length
+    ? assessedChildren.reduce((sum, child) => sum + (Number(child.avgScore) || 0), 0) / assessedChildren.length
+    : 0;
+  const riskData = [
+    { key: 'low', label: 'Low', count: assessedChildren.filter((child) => child.riskLevel === 'low').length, color: '#22c55e' },
+    { key: 'moderate', label: 'Moderate', count: assessedChildren.filter((child) => child.riskLevel === 'moderate').length, color: '#f59e0b' },
+    { key: 'high', label: 'High', count: assessedChildren.filter((child) => child.riskLevel === 'high').length, color: '#ef4444' },
+  ].filter((item) => item.count > 0);
 
   const handlePrint = () => {
     window.print();
@@ -100,47 +123,48 @@ export default function Reports() {
           <div className="flex items-center gap-3">
             <FileText className="w-10 h-10 text-primary-500" />
             <div>
-              <p className="text-sm text-gray-500">Average mood</p>
+              <p className="text-sm text-gray-500">Average assessment score</p>
               <p className="text-xl font-bold text-gray-800">
-                {(MOCK_MOOD_TREND.reduce((a, b) => a + b.mood, 0) / MOCK_MOOD_TREND.length || 0).toFixed(1)}/5
+                {assessedChildren.length ? `${averageScore.toFixed(1)}/5` : 'No data'}
               </p>
             </div>
           </div>
         </Card>
         <Card>
           <div className="flex items-center gap-3">
-            <RiskBadge level={MOCK_RISK_TIMELINE[MOCK_RISK_TIMELINE.length - 1]?.level || 'low'} />
-            <p className="text-sm text-gray-500">Current status (informational)</p>
+            <RiskBadge level={assessedChildren.find((child) => child.riskLevel === 'high') ? 'high' : assessedChildren.find((child) => child.riskLevel === 'moderate') ? 'moderate' : 'low'} />
+            <p className="text-sm text-gray-500">Current highest risk level</p>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center gap-3">
+            <FileText className="w-10 h-10 text-primary-500" />
+            <div>
+              <p className="text-sm text-gray-500">Assessments saved</p>
+              <p className="text-xl font-bold text-gray-800">{assessedChildren.length}</p>
+            </div>
           </div>
         </Card>
       </div>
 
-      {/* Mood trend */}
       <Card>
-        <h2 className="text-lg font-bold text-gray-800 mb-4">Weekly mood trend</h2>
-        <div className="h-48">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={MOCK_MOOD_TREND}>
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis domain={[1, 5]} tick={{ fontSize: 12 }} />
-              <Line type="monotone" dataKey="mood" stroke="#22c55e" strokeWidth={2} dot={{ r: 4 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </Card>
-
-      {/* Risk timeline */}
-      <Card>
-        <h2 className="text-lg font-bold text-gray-800 mb-4">Historical risk-level timeline (informational)</h2>
-        <div className="h-48">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={MOCK_RISK_TIMELINE}>
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Line type="monotone" dataKey="score" stroke="#ed7620" strokeWidth={2} dot={{ r: 4 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        <h2 className="text-lg font-bold text-gray-800 mb-4">Risk distribution across children</h2>
+        {riskData.length > 0 ? (
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={riskData} dataKey="count" nameKey="label" cx="50%" cy="50%" outerRadius={90} label>
+                  {riskData.map((entry) => (
+                    <Cell key={entry.key} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500">No assessment data yet.</p>
+        )}
       </Card>
 
       <p className="text-sm text-gray-500">

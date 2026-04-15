@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { X, Calendar, Clock, User, FileText, CheckCircle } from 'lucide-react';
+import { X, Calendar, Clock, User, FileText, CheckCircle, MapPin } from 'lucide-react';
 import { api } from '../api/api';
 
 export default function AppointmentBookingModal({ isOpen, onClose, onBooked, parentId, childId, childName }) {
@@ -147,6 +147,10 @@ export default function AppointmentBookingModal({ isOpen, onClose, onBooked, par
                         <div className="flex-1">
                           <h3 className="font-semibold text-lg text-gray-800">{doctor.name}</h3>
                           <p className="text-sm text-primary-600 font-medium">{doctor.specialization}</p>
+                            <p className="text-xs text-gray-500 mt-1 flex items-start gap-1">
+                              <MapPin className="w-3 h-3 mt-0.5" />
+                              <span>{doctor.clinicAddress || doctor.clinic_address || 'Clinic address not provided'}</span>
+                            </p>
                           {doctor.bio && <p className="text-sm text-gray-600 mt-2">{doctor.bio}</p>}
                           <p className="text-xs text-gray-500 mt-2">
                             {doctor.available_slots} available slots
@@ -242,6 +246,10 @@ export default function AppointmentBookingModal({ isOpen, onClose, onBooked, par
                       <p className="text-gray-600">Doctor</p>
                       <p className="font-medium text-gray-800">{selectedDoctor.name}</p>
                       <p className="text-xs text-primary-600">{selectedDoctor.specialization}</p>
+                      <p className="text-xs text-gray-500 mt-1 flex items-start gap-1">
+                        <MapPin className="w-3 h-3 mt-0.5" />
+                        <span>{selectedDoctor.clinicAddress || selectedDoctor.clinic_address || 'Clinic address not provided'}</span>
+                      </p>
                     </div>
                   </div>
 

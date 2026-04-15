@@ -1,5 +1,6 @@
 import express from 'express';
 import { db } from '../db.js';
+import { inferConditionsFromResponses, normalizeConditionKey } from '../utils/conditionDetection.js';
 
 const router = express.Router();
 
@@ -135,7 +136,7 @@ router.get('/analytics', (req, res) => {
 
     // Get disease-wise analytics
     const allAssessments = db.prepare(`
-      SELECT identified_conditions FROM assessments WHERE identified_conditions IS NOT NULL
+      SELECT identified_conditions, conditions_json, responses_json FROM assessments
     `).all();
 
     const diseaseStats = {};
@@ -156,12 +157,18 @@ router.get('/analytics', (req, res) => {
     });
 
     // Parse and count conditions
-    allAssessments.forEach(assessment => {
+    allAssessments.forEach((assessment) => {
       try {
-        const conditions = JSON.parse(assessment.identified_conditions || '[]');
+        const parsedResponses = assessment.responses_json ? JSON.parse(assessment.responses_json) : {};
+        const parsedIdentifiedConditions = assessment.identified_conditions
+          ? JSON.parse(assessment.identified_conditions)
+          : assessment.conditions_json
+            ? JSON.parse(assessment.conditions_json)
+            : inferConditionsFromResponses(parsedResponses);
+        const conditions = Array.isArray(parsedIdentifiedConditions) ? parsedIdentifiedConditions : [];
         if (Array.isArray(conditions)) {
-          conditions.forEach(condition => {
-            const key = condition.key || condition;
+          conditions.forEach((condition) => {
+            const key = normalizeConditionKey(condition);
             if (diseaseStats[key]) {
               diseaseStats[key].count++;
             }

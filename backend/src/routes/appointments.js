@@ -22,6 +22,49 @@ transporter.verify((error, success) => {
   }
 });
 
+function buildAppointmentLocation(doctor) {
+  return doctor?.clinic_address || doctor?.clinicAddress || 'Clinic address not available';
+}
+
+async function sendParentReplyEmail({ parent, child, doctor, appointment, status, reason }) {
+  if (!parent?.email) return;
+
+  const location = buildAppointmentLocation(doctor);
+  const formattedDate = appointment.appointment_date || 'TBA';
+  const formattedTime = appointment.appointment_time || 'TBA';
+  const isConfirmed = status === 'confirmed';
+  const subject = isConfirmed
+    ? `Appointment Confirmed for ${child?.name || 'your child'}`
+    : `Appointment Update for ${child?.name || 'your child'} - Rejected`;
+
+  const html = isConfirmed
+    ? `
+      <h2>Appointment Confirmed</h2>
+      <p>Your appointment for <strong>${child?.name || 'your child'}</strong> has been confirmed by ${doctor?.name || 'the doctor'}.</p>
+      <p><strong>Date:</strong> ${formattedDate}</p>
+      <p><strong>Time:</strong> ${formattedTime}</p>
+      <p><strong>Location:</strong> ${location}</p>
+      <p><strong>Doctor:</strong> ${doctor?.name || 'Doctor'}</p>
+      <p><strong>Specialization:</strong> ${doctor?.specialization || 'N/A'}</p>
+      ${reason ? `<p><strong>Doctor Note:</strong> ${reason}</p>` : ''}
+    `
+    : `
+      <h2>Appointment Rejected</h2>
+      <p>Your appointment request for <strong>${child?.name || 'your child'}</strong> was rejected by ${doctor?.name || 'the doctor'}.</p>
+      <p><strong>Requested Date:</strong> ${formattedDate}</p>
+      <p><strong>Requested Time:</strong> ${formattedTime}</p>
+      <p>You can book another available slot from the parent portal.</p>
+      ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+    `;
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER || 'noreply@mentalkids.com',
+    to: parent.email,
+    subject,
+    html,
+  });
+}
+
 // Book appointment with doctor and time slot
 router.post('/book', requireAuth, (req, res) => {
   try {
@@ -76,10 +119,6 @@ router.post('/book', requireAuth, (req, res) => {
     // Mark time slot as unavailable
     db.prepare('UPDATE time_slots SET available = 0 WHERE id = ?').run(timeSlotId);
 
-    const appBaseUrl = process.env.APP_URL || 'http://localhost:3000';
-    const confirmLink = `${appBaseUrl}/dashboard/doctor?appointmentId=${appointment.lastInsertRowid}&action=confirmed`;
-    const rejectLink = `${appBaseUrl}/dashboard/doctor?appointmentId=${appointment.lastInsertRowid}&action=rejected`;
-
     // Send email to doctor
     const mailOptions = {
       from: process.env.EMAIL_USER || 'noreply@mentalkids.com',
@@ -93,16 +132,12 @@ router.post('/book', requireAuth, (req, res) => {
         <p><strong>Parent Email:</strong> ${parent.email}</p>
         <p><strong>Date:</strong> ${timeSlot.date}</p>
         <p><strong>Time:</strong> ${timeSlot.time}</p>
+        <p><strong>Clinic Address:</strong> ${buildAppointmentLocation(doctor)}</p>
         <p><strong>Reason:</strong> ${reason || 'Not specified'}</p>
         <p><strong>Appointment ID:</strong> ${appointment.lastInsertRowid}</p>
         <p><strong>Parent Consent:</strong> Granted to share child assessment history for this appointment</p>
         <hr>
-        <p><strong>ACTION REQUIRED:</strong> Please confirm or decline this appointment request.</p>
-        <p>
-          <a href="${confirmLink}" style="display:inline-block; padding:10px 14px; background:#16a34a; color:white; text-decoration:none; border-radius:6px; margin-right:8px;">Confirm Appointment</a>
-          <a href="${rejectLink}" style="display:inline-block; padding:10px 14px; background:#dc2626; color:white; text-decoration:none; border-radius:6px;">Reject Appointment</a>
-        </p>
-        <p style="font-size:12px; color:#6b7280;">These links will open the doctor portal. Please log in with your doctor email and password created by admin.</p>
+        <p><strong>ACTION REQUIRED:</strong> Please confirm or decline this appointment request in the doctor portal.</p>
       `,
     };
 
@@ -339,7 +374,7 @@ router.delete('/:appointmentId', requireAuth, (req, res) => {
 });
 
 // Doctor confirms/rejects appointment
-router.put('/:appointmentId/confirm', requireAuth, (req, res) => {
+router.put('/:appointmentId/confirm', requireAuth, async (req, res) => {
   try {
     const { appointmentId } = req.params;
     const { status, reason } = req.body;
@@ -403,9 +438,19 @@ router.put('/:appointmentId/confirm', requireAuth, (req, res) => {
 
     const updatedAppointment = db.prepare('SELECT * FROM appointments_updated WHERE id = ?').get(appointmentId);
 
-    // TODO: Send email notification to parent
-    // const parent = db.prepare('SELECT * FROM users WHERE id = ?').get(appointment.parent_id);
-    // sendEmailNotification(parent.email, status, reason);
+    if (status === 'confirmed' || status === 'rejected') {
+      const parent = db.prepare('SELECT id, name, email FROM users WHERE id = ?').get(updatedAppointment.parent_id);
+      const child = db.prepare('SELECT id, name FROM users WHERE id = ?').get(updatedAppointment.child_id);
+      const doctor = db.prepare('SELECT id, name, specialization, clinic_address FROM doctors WHERE id = ?').get(updatedAppointment.doctor_id);
+
+      if (parent) {
+        try {
+          await sendParentReplyEmail({ parent, child, doctor, appointment: updatedAppointment, status, reason });
+        } catch (emailError) {
+          console.error('Parent reply email error:', emailError);
+        }
+      }
+    }
 
     res.json({
       success: true,
